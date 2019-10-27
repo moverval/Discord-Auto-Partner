@@ -1,11 +1,29 @@
+require('dotenv').config();
 const Discord = require('discord.js');
+const fs = require('fs');
+const statusConfig = require('./status.json');
 
 const client = new Discord.Client({disableEveryone: true});
 const MINIMAL_MEMBER = parseInt(process.env["MAIN_GUILD_MINIMAL_MEMBERS_REQUIRED"]);
 const GUILD_NAME = process.env["MAIN_GUILD_NAME"];
+const GUILD_ID = process.env["MAIN_GUILD"];
+const PARTNER_CATEGORY = process.env["PARTNER_CATEGORY"];
+/**
+ * @type {Discord.Guild}
+ */
+let MAIN_GUILD = null;
+let partnerInformation = {};
 
 client.on('ready', function() {
     console.log("Bot logged");
+    if(!(MAIN_GUILD = client.guilds.get(GUILD_ID)) || !MAIN_GUILD.available) {
+        console.log("Bot is not on main server. Please start when main server is reachable");
+        process.exit(0);
+    }
+
+    if(fs.existsSync('partners.json')) {
+        partnerInformation = JSON.parse(fs.readFileSync('partners.json', 'utf-8'));
+    }
 });
 
 client.login(process.env["CLIENT_SECRET"]);
@@ -45,13 +63,13 @@ client.on('message', function(message) {
     }
 });
 
-client.on('guildCreate', function(guild) {
+client.on('guildCreate', async function(guild) {
     if(guild.id !== process.env["MAIN_GUILD"]) {
         if(guild.memberCount >= MINIMAL_MEMBER) {
             let count = 0;
             let success = false;
-            guild.channels.forEach(function(channel) {
-                const flags = checkChannel(channel);
+            guild.channels.forEach(async function(channel) {
+                const flags = await checkChannel(channel);
                 if(flags & ChannelExpression.NONE) {
                     success = true;
                     // TODO Make partner channel create function and track changes on server
@@ -69,7 +87,7 @@ client.on('guildCreate', function(guild) {
 
 const ChannelExpression = {
     NONE: 0,
-    GUILDNAME: 1,
+    CHANNELNAME: 1,
     CHANNELPERMISSION_EVERYONE: 1 << 1,
     CHANNELPERMISSION_BOT: 1 << 2,
     CHANNEL_MESSAGE: 1 << 3,
@@ -80,7 +98,7 @@ const ChannelExpression = {
  * @param {Discord.TextChannel} channel 
  * @returns {boolean}
  */
-function checkChannel(channel) {
+async function checkChannel(channel) {
     let rt = 0;
     if(channel.name.includes(GUILD_NAME)) {
         const permissions = channel.permissionsFor(channel.guild.id);
@@ -92,8 +110,65 @@ function checkChannel(channel) {
                     rt |= ChannelExpression.CHANNEL_MESSAGE;
             } else rt |= ChannelExpression.CHANNELPERMISSION_BOT;
         } else rt |= ChannelExpression.CHANNELPERMISSION_EVERYONE;
-    } else rt |= ChannelExpression.GUILDNAME;
+    } else rt |= ChannelExpression.CHANNELNAME;
     return rt;
+}
+
+function getChatExpressionStatus(expression) {
+    let message = "";
+    if(expression === ChannelExpression.NONE) {
+        message = statusConfig["ChatExpression"]["NONE"];
+    } else
+    for(const status in ChannelExpression) {
+        if(ChannelExpression[status] !== undefined) {
+            console.log(status);
+            const statusValue = ChannelExpression[status];
+            if(expression & statusValue) {
+                message = statusConfig["ChatExpression"][status];
+            }
+        } else return false;
+    }
+    return message;
+}
+
+client.on('channelCreate', function(channel) {
+    if(channel.type === 'text') {
+        
+    }
+});
+
+/**
+ * @param {Discord.TextChannel} channel 
+ */
+async function createPartner(channel) {
+    const guild = channel.guild;
+    const category = MAIN_GUILD.channels.find(c => c.name === PARTNER_CATEGORY && c.type === 'category');
+    const channel = await MAIN_GUILD.createChannel("｜" + guild.name, {
+        type: 'text',
+        parent: category
+    });
+    partnerInformation[guild.id] = {
+        partner: true,
+        name: guild.name,
+        channelName: channel.name
+    };
+    fs.writeFileSync('partners.json', JSON.stringify(partnerInformation));
+    channel.overwritePermissions(guild.owner.id, {
+        SEND_MESSAGES: true,
+        MANAGE_MESSAGES: true,
+        MANAGE_CHANNELS: true,
+        MENTION_EVERYONE: false
+    });
+    channel.overwritePermissions(MAIN_GUILD.id, {
+        READ_MESSAGES: true,
+        READ_MESSAGE_HISTORY: true,
+        SEND_MESSAGES: false,
+        ADD_REACTIONS: true
+    });
+}
+
+function removePartner(channel) {
+    const guild = channel.guild;
 }
 
 const commandFunction = {

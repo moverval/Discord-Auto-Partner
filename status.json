@@ -1,9 +1,10 @@
 {
     "ChatExpression": {
-        "NONE": "Everything ready, ready to partner :) . I created your channel, thanks for partnering :D",
+        "NONE": "Everything ready to partner :) . I created your channel, thanks for partnering :D",
         "CHANNELNAME": "Please create a channel with our servers name. After this step I'll say tell your further details",
         "CHANNELPERMISSION_EVERYONE": "The channel is not properly setuped. Now you need to set the right permissions to the channel",
         "CHANNELPERMISSION_BOT": "I cannot write in this channel. I need permissions that I can send messages into it",
-        "CHANNEL_MESSAGE": "Sending message into partner channel..."
+        "CHANNEL_MESSAGE": "Sending message into partner channel...",
+        "CHANNEL_FOREIGN_MESSAGE": "Please remove all messages out of this channel"
     }
 }

@@ -8,6 +8,8 @@ const MINIMAL_MEMBER = parseInt(process.env["MAIN_GUILD_MINIMAL_MEMBERS_REQUIRED
 const GUILD_NAME = process.env["MAIN_GUILD_NAME"];
 const GUILD_ID = process.env["MAIN_GUILD"];
 const PARTNER_CATEGORY = process.env["PARTNER_CATEGORY"];
+const PARTNER_MESSAGE = fs.readFileSync('pm.md', 'utf-8');
+
 /**
  * @type {Discord.Guild}
  */
@@ -21,6 +23,7 @@ client.on('ready', function() {
         process.exit(0);
     }
     registerCommands();
+    client.user.setStatus('invisible');
 
     if(fs.existsSync('partners.json')) {
         partnerInformation = JSON.parse(fs.readFileSync('partners.json', 'utf-8'));
@@ -29,9 +32,7 @@ client.on('ready', function() {
 
 client.login(process.env["CLIENT_SECRET"]);
 
-const commandMap = {
-
-};
+const commandMap = {};
 
 function registerCommand(command, func, help="") {
     if(!commandMap[command]) {
@@ -45,7 +46,56 @@ function registerCommands() {
     registerCommand("partnership", commandFunction.partnership, "Can register a new partnership for your server");
 }
 
-client.on('message', function(message) {
+function sendNotifyMessage(channel, description) {
+    const embed = new Discord.RichEmbed();
+    embed.setTitle("Note")
+        .setDescription(description)
+        .setColor(0xffe675);
+    channel.send(embed);
+}
+
+client.on('messageDelete', async function(message) {
+    if(isPartner(message.guild)) {
+        if(partnerInformation[message.guild.id]["channel"]["id"] === message.channel.id) {
+            if(partnerInformation[message.guild.id]["partnerMessage"]["id"] === message.id) {
+                sendNotifyMessage(message.guild.owner.user, "Partner message updated");
+                message.channel.send(PARTNER_MESSAGE);
+            }
+        }
+    }
+    if(!isPartner(message.guild)) {
+        let flags = await checkChannel(message.channel);
+        console.log("Getting flags " + flags);
+        if(flags > ChannelExpression.CHANNELNAME) {
+            console.log("More steps than setting the name to channel");
+            console.log(getChatExpressionStatus(flags));
+            sendNotifyMessage(message.guild.owner.user, getChatExpressionStatus(flags));
+            if(flags & ChannelExpression.CHANNEL_MESSAGE) {
+                await sendPartnerMessage(message.channel);
+                flags = await checkChannel(message.channel);
+            }
+        }
+        if(!flags) {
+            console.log("Channel complete. Ready for partner");
+            if(!isPartner(message.guild)) {
+                sendNotifyMessage(message.guild.owner.user, getChatExpressionStatus(flags));
+                createPartner(message.channel);
+            }
+        }
+    }
+});
+
+client.on('message', async function(message) {
+    if(isPartner(message.guild)) {
+        if(partnerInformation[message.guild.id]["channelId"] === message.channel.id && message.member.user.id !== client.user.id) {
+            const embed = new Discord.RichEmbed();
+            embed.setColor(0xda746a)
+            .setTitle("Partner channel removed")
+            .setDescription("Partnership invalid because partner channel turned to invalid");
+            message.guild.owner.send(embed);
+            removePartner(message.guild);
+        }
+    }
     const prefix = process.env["CLIENT_INVOKE"];
     if(message.channel.type === 'text' && message.content.startsWith(prefix) && !message.member.user.bot && message.member.user.id !== client.user.id) {
         const args = message.content.substr(prefix.length).split(" ");
@@ -67,6 +117,33 @@ client.on('message', function(message) {
         }
     }
 });
+
+function createPartnerInformation(channel, partnered, mainServerChannel, partnerMessage) {
+    return {
+        channel: {
+            id: channel.id,
+            name: channel.name
+        },
+        guild: {
+            id: channel.guild.id,
+            name: channel.guild.name
+        },
+        mainServerChannel: {
+            id: mainServerChannel.id,
+            name: mainServerChannel.name
+        },
+        partnerMessage: {
+            id: partnerMessage.id,
+            lastUpdate: new Date()
+        },
+        partnershipRecorded: new Date(),
+        channelId: channel.id,
+        partner: partnered,
+        channelName: channel.name,
+        name: channel.guild.name,
+        saveVersion: 'v0.0.1'
+    };
+}
 
 client.on('guildCreate', async function(guild) {
     if(guild.id !== process.env["MAIN_GUILD"]) {
@@ -90,11 +167,7 @@ client.on('guildCreate', async function(guild) {
                     .setDescription("I will now explain how we can partner.\n\nI do not need any special rights. Please do not give me a bot role for safety. I am marked as invisible so I do not show up in your online list.")
                     .setColor(0xa4da6a);
                 guild.owner.user.send(embed);
-                const embed2 = new Discord.RichEmbed();
-                embed.setTitle("Note")
-                .setDescription("Please create a channel named like our server (for example: partner: " + GUILD_NAME + "). After that I will write you the next task")
-                .setColor(0xffe675);
-                guild.owner.user.send(embed2);
+                sendNotifyMessage(guild.owner.user, "Please create a channel named like our server (for example: partner: " + GUILD_NAME + "). After that I will write you the next task");
             }
         } else {
             console.log("Not enough members");
@@ -106,7 +179,7 @@ client.on('guildCreate', async function(guild) {
         }
     }
     else {
-        guild.owner.user.send("Joined main server... Wait how did you do that? This should not be possible. Please report this as an error.");
+        sendNotifyMessage(guild.owner.user, "Joined main server... Wait how did you do that? This should not be possible. Please report this as an error.");
     }
 });
 
@@ -116,7 +189,8 @@ const ChannelExpression = {
     CHANNELPERMISSION_EVERYONE: 1 << 1,
     CHANNELPERMISSION_BOT: 1 << 2,
     CHANNEL_MESSAGE: 1 << 3,
-    CHANNEL: 1 << 4
+    CHANNEL: 1 << 4,
+    CHANNEL_FOREIGN_MESSAGE: 1 << 5
 };
 
 /**
@@ -126,13 +200,17 @@ const ChannelExpression = {
 async function checkChannel(channel) {
     console.log("Checking channel " + channel.name);
     let rt = 0;
-    if(channel.name.includes(GUILD_NAME)) {
+    if(channel.name.indexOf(GUILD_NAME.toLowerCase()) !== -1) {
+        console.log("Name valid");
         const permissions = channel.permissionsFor(channel.guild.id);
         const botPermissions = channel.permissionsFor(client.user);
         if(permissions.has('READ_MESSAGES') && permissions.has('READ_MESSAGE_HISTORY') && !permissions.has('SEND_MESSAGES')) {
             if(botPermissions.has('SEND_MESSAGES')) {
                 const messages = await channel.fetchMessages();
-                if(!messages.last().member.user.id === client.user.id)
+                const lastMessage = messages.last();
+                if(lastMessage && lastMessage.member.user.id !== client.user.id)
+                    rt |= ChannelExpression.CHANNEL_FOREIGN_MESSAGE;
+                if(!lastMessage)
                     rt |= ChannelExpression.CHANNEL_MESSAGE;
             } else rt |= ChannelExpression.CHANNELPERMISSION_BOT;
         } else rt |= ChannelExpression.CHANNELPERMISSION_EVERYONE;
@@ -156,9 +234,9 @@ function getChatExpressionStatus(expression) {
     return message;
 }
 
-client.on('channelCreate', function(channel) {
+client.on('channelCreate', async function(channel) {
     if(channel.type === 'text') {
-        const flags = checkChannel(channel);
+        const flags = await checkChannel(channel);
         if(flags === ChannelExpression.NONE) return;
         if(!(flags & ChannelExpression.CHANNELNAME)) {
             const embed = new Discord.RichEmbed();
@@ -170,50 +248,60 @@ client.on('channelCreate', function(channel) {
     }
 });
 
-client.on('channelUpdate', function(channelOld, channelNew) {
+client.on('channelUpdate', async function(channelOld, channelNew) {
     if(channelNew.type === 'text') {
+        console.log("This is a text channel");
         if(isPartner(channelNew.guild)) {
+            console.log("This channel is on a partner guild");
             if(partnerInformation[channelNew.guild.id]["channelId"] === channelNew.id) {
-                const flags = checkChannel(channelNew);
+                console.log("This is already a partner channel");
+                const flags = await checkChannel(channelNew);
                 const embed = new Discord.RichEmbed();
-                embed.setTitle("Note")
-                    .setDescription(getChatExpressionStatus(flags))
-                    .setColor(0xffe675);
-                channel.guild.owner.user.send(embed);
+                sendNotifyMessage(channelOld.guild.owner.user, getChatExpressionStatus(flags));
                 if(flags) {
+                    console.log("Channel is now invalid, removing partner");
                     removePartner(channelNew);
                     embed.setColor(0xda746a)
                     .setTitle("Partner channel removed")
                     .setDescription("Partnership invalid because partner channel has changed to invalid.");
-                    channel.guild.owner.user.send(embed);
+                    channelNew.guild.owner.user.send(embed);
                 }
             }
         }
         else {
-            const flags = checkChannel(channelNew);
+            let flags = await checkChannel(channelNew);
+            console.log("Getting flags " + flags);
             if(flags > ChannelExpression.CHANNELNAME) {
-                const embed = new Discord.RichEmbed();
-                embed.setTitle("Note")
-                    .setDescription(getChatExpressionStatus(flags))
-                    .setColor(0xffe675);
-                channel.guild.owner.user.send(embed);
+                console.log("More steps than setting the name to channel");
+                console.log(getChatExpressionStatus(flags));
+                sendNotifyMessage(channelOld.guild.owner.user, getChatExpressionStatus(flags));
+                if(flags & ChannelExpression.CHANNEL_MESSAGE) {
+                    await sendPartnerMessage(channelOld);
+                    flags = await checkChannel(channelNew);
+                }
             }
             if(!flags) {
-                const embed = new Discord.RichEmbed();
-                embed.setTitle("Note")
-                    .setDescription(getChatExpressionStatus(flags))
-                    .setColor(0xffe675);
-                channel.guild.owner.user.send(embed);
-                createPartner(channelNew);
+                console.log("Channel complete. Ready for partner");
+                if(!isPartner(channelNew.guild)) {
+                    sendNotifyMessage(channelOld.guild.owner.user, getChatExpressionStatus(flags));
+                    createPartner(channelNew);
+                }
             }
         }
     }
 });
 
+async function sendPartnerMessage(channel) {
+    await channel.send(PARTNER_MESSAGE);
+}
+
 client.on('channelDelete', function(channel) {
     if(channel.type === 'text') {
+        console.log("Text channel deleted");
         if(isPartner(channel.guild)) {
+            console.log("Text channel was removed from partner server");
             if(partnerInformation[channel.guild.id]["channelId"] === channel.id) {
+                console.log("This was the partner channel");
                 removePartner(channel.guild);
                 const embed = new Discord.RichEmbed();
                 embed.setColor(0xda746a)
@@ -228,7 +316,7 @@ client.on('channelDelete', function(channel) {
 client.on('guildDelete', function(guild) {
     if(isPartner(guild)) {
         removePartner(guild);
-        const user = client.users.find('id', guild.owner.id);
+        const user = client.users.get(guild.owner.id);
         if(user) {
             const embed = new Discord.RichEmbed();
             embed.setDescription("Partner channel removed")
@@ -240,7 +328,7 @@ client.on('guildDelete', function(guild) {
 });
 
 function isPartner(guild) {
-    return partnerInformation[guild] !== undefined && partnerInformation[guild]["partner"];
+    return guild && partnerInformation[guild.id] !== undefined && partnerInformation[guild.id]["partner"];
 }
 
 /**
@@ -249,24 +337,19 @@ function isPartner(guild) {
 async function createPartner(channel) {
     const guild = channel.guild;
     const category = MAIN_GUILD.channels.find(c => c.name === PARTNER_CATEGORY && c.type === 'category');
-    const channel = await MAIN_GUILD.createChannel("｜" + guild.name, {
+    const mGuildChannel = await MAIN_GUILD.createChannel("｜" + guild.name, {
         type: 'text',
         parent: category
     });
-    partnerInformation[guild.id] = {
-        partner: true,
-        name: guild.name,
-        channelName: channel.name,
-        channelId: channel.id
-    };
-    fs.writeFileSync('partners.json', JSON.stringify(partnerInformation));
-    channel.overwritePermissions(guild.owner.id, {
+    partnerInformation[guild.id] = createPartnerInformation(channel, true, mGuildChannel, channel.messages.last());
+    fs.writeFileSync('partners.json', JSON.stringify(partnerInformation, null, '\t'));
+    mGuildChannel.overwritePermissions(guild.owner.id, {
         SEND_MESSAGES: true,
         MANAGE_MESSAGES: true,
         MANAGE_CHANNELS: true,
         MENTION_EVERYONE: false
     });
-    channel.overwritePermissions(MAIN_GUILD.id, {
+    mGuildChannel.overwritePermissions(MAIN_GUILD.id, {
         READ_MESSAGES: true,
         READ_MESSAGE_HISTORY: true,
         SEND_MESSAGES: false,
@@ -277,7 +360,11 @@ async function createPartner(channel) {
 function removePartner(guild) {
     if(isPartner(guild)) {
         partnerInformation[guild.id]["partner"] = false;
-        fs.writeFileSync('partners.json', JSON.stringify(partnerInformation));
+        const partnerChannel = MAIN_GUILD.channels.get(partnerInformation[guild.id]["mainServerChannel"]["id"]);
+        partnerChannel.delete().then(function() {
+            console.log("partner channel deleted");
+        });
+        fs.writeFileSync('partners.json', JSON.stringify(partnerInformation, null, '\t'));
     }
 }
 
@@ -286,15 +373,19 @@ function removePartner(guild) {
  * @returns {{isPartner:boolean,channel:Discord.Channel}}
  */
 function checkGuild(guild) {
-    return new Promise(resolve => {
+    return new Promise(async resolve => {
         let count = 0;
         guild.channels.forEach(function(channel) {
             count++;
             if(channel.type === 'text') {
-                if(!checkChannel(channel)) return resolve({isPartner: true, channel});
-                if(count === guild.channels.size) {
-                    return resolve({isPartner: false, channel: null});
-                }
+                checkChannel(channel).then(function(flags) {
+                    if(!flags) {
+                        return resolve({isPartner: true, channel});
+                    }
+                });
+            }
+            if(count === guild.channels.size) {
+                return resolve({isPartner: false, channel: null});
             }
         });
     });

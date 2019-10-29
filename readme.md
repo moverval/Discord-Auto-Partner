@@ -16,6 +16,7 @@ Then it needs variables that say how the bot can host itself. They need all to b
 | MAIN_GUILD                          | The guild's id, the bot runs for                                              |
 | MAIN_GUILD_MINIMAL_MEMBERS_REQUIRED | How many members are required on partner server to add it to the partner list |
 | MAIN_GUILD_NAME                     | The guild's name                                                              |
+| PARTNER_CATEGORY                    | The category for the partner channels. It needs the categories name           |
 
 
 After that you can start the bot with [node](https://nodejs.org/en/). 

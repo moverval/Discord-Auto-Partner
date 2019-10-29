@@ -186,8 +186,9 @@ client.on('guildCreate', async function(guild) {
             const embed = new Discord.RichEmbed();
             embed.setTitle("Not Verified as a Public Server")
             .setColor(0xda746a)
-            .setDescription("I recognized that you don't look like a public server (I verify servers as public when they have at least " + MINIMAL_MEMBER + " Members). When I verify you as a public server I'll write to you again.")
+            .setDescription("I recognized that you don't look like a public server (I verify servers as public when they have at least " + MINIMAL_MEMBER + " Members). Please reinvite me if your server has at least " + MINIMAL_MEMBER + " members.");
             guild.owner.user.send(embed);
+            guild.leave();
         }
     }
     else {

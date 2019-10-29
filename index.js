@@ -16,7 +16,7 @@ const PARTNER_MESSAGE = fs.readFileSync('pm.md', 'utf-8');
 let MAIN_GUILD = null;
 let partnerInformation = {};
 
-client.on('ready', function() {
+client.on('ready', async function() {
     console.log("Bot logged");
     if(!(MAIN_GUILD = client.guilds.get(GUILD_ID)) || !MAIN_GUILD.available) {
         console.log("Bot is not on main server. Please start when main server is reachable");
@@ -28,6 +28,9 @@ client.on('ready', function() {
     if(fs.existsSync('partners.json')) {
         partnerInformation = JSON.parse(fs.readFileSync('partners.json', 'utf-8'));
     }
+
+    await checkPartnerServersValid();
+    console.log("Partner Servers syncronized");
 });
 
 client.login(process.env["CLIENT_SECRET"]);
@@ -59,7 +62,10 @@ client.on('messageDelete', async function(message) {
         if(partnerInformation[message.guild.id]["channel"]["id"] === message.channel.id) {
             if(partnerInformation[message.guild.id]["partnerMessage"]["id"] === message.id) {
                 sendNotifyMessage(message.guild.owner.user, "Partner message updated");
-                message.channel.send(PARTNER_MESSAGE);
+                const partnerMessage = await message.channel.send(PARTNER_MESSAGE);
+                partnerInformation[message.guild.id]["partnerMessage"]["id"] = partnerMessage.id;
+                partnerInformation[message.guild.id]["partnerMessage"]["lastUpdate"] = new Date();
+                fs.writeFileSync('partners.json', JSON.stringify(partnerInformation, null, '\t'));
             }
         }
     }
@@ -204,10 +210,10 @@ async function checkChannel(channel) {
         console.log("Name valid");
         const permissions = channel.permissionsFor(channel.guild.id);
         const botPermissions = channel.permissionsFor(client.user);
-        if(permissions.has('READ_MESSAGES') && permissions.has('READ_MESSAGE_HISTORY') && !permissions.has('SEND_MESSAGES')) {
-            if(botPermissions.has('SEND_MESSAGES')) {
+        if(permissions && permissions.has('READ_MESSAGES') && permissions.has('READ_MESSAGE_HISTORY') && !permissions.has('SEND_MESSAGES')) {
+            if(botPermissions && botPermissions.has('SEND_MESSAGES') && botPermissions.has('READ_MESSAGES')) {
                 const messages = await channel.fetchMessages();
-                const lastMessage = messages.last();
+                const lastMessage = messages.first();
                 if(lastMessage && lastMessage.member.user.id !== client.user.id)
                     rt |= ChannelExpression.CHANNEL_FOREIGN_MESSAGE;
                 if(!lastMessage)
@@ -256,11 +262,10 @@ client.on('channelUpdate', async function(channelOld, channelNew) {
             if(partnerInformation[channelNew.guild.id]["channelId"] === channelNew.id) {
                 console.log("This is already a partner channel");
                 const flags = await checkChannel(channelNew);
-                const embed = new Discord.RichEmbed();
-                sendNotifyMessage(channelOld.guild.owner.user, getChatExpressionStatus(flags));
                 if(flags) {
+                    const embed = new Discord.RichEmbed();
                     console.log("Channel is now invalid, removing partner");
-                    removePartner(channelNew);
+                    removePartner(channelOld.guild);
                     embed.setColor(0xda746a)
                     .setTitle("Partner channel removed")
                     .setDescription("Partnership invalid because partner channel has changed to invalid.");
@@ -328,7 +333,7 @@ client.on('guildDelete', function(guild) {
 });
 
 function isPartner(guild) {
-    return guild && partnerInformation[guild.id] !== undefined && partnerInformation[guild.id]["partner"];
+    return guild && guild.id !== MAIN_GUILD.id && partnerInformation[guild.id] !== undefined && partnerInformation[guild.id]["partner"];
 }
 
 /**
@@ -359,13 +364,17 @@ async function createPartner(channel) {
 
 function removePartner(guild) {
     if(isPartner(guild)) {
-        partnerInformation[guild.id]["partner"] = false;
-        const partnerChannel = MAIN_GUILD.channels.get(partnerInformation[guild.id]["mainServerChannel"]["id"]);
-        partnerChannel.delete().then(function() {
-            console.log("partner channel deleted");
-        });
-        fs.writeFileSync('partners.json', JSON.stringify(partnerInformation, null, '\t'));
+        removePartnerById(guild.id);
     }
+}
+
+function removePartnerById(guildId) {
+    partnerInformation[guildId]["partner"] = false;
+    const partnerChannel = MAIN_GUILD.channels.get(partnerInformation[guildId]["mainServerChannel"]["id"]);
+    partnerChannel.delete().then(function() {
+        console.log("partner channel deleted");
+    });
+    fs.writeFileSync('partners.json', JSON.stringify(partnerInformation, null, '\t'));
 }
 
 /**
@@ -375,20 +384,50 @@ function removePartner(guild) {
 function checkGuild(guild) {
     return new Promise(async resolve => {
         let count = 0;
-        guild.channels.forEach(function(channel) {
-            count++;
-            if(channel.type === 'text') {
-                checkChannel(channel).then(function(flags) {
-                    if(!flags) {
-                        return resolve({isPartner: true, channel});
-                    }
-                });
-            }
-            if(count === guild.channels.size) {
-                return resolve({isPartner: false, channel: null});
-            }
+        const guildChannels = guild.channels.filter(c => c.type === 'text');
+        guildChannels.forEach(function(channel) {
+            checkChannel(channel).then(function(flags) {
+                count++;
+                if(!flags) {
+                    console.log("Server is ok");
+                    return resolve({isPartner: true, channel});
+                }
+                if(flags & ChannelExpression.CHANNEL_MESSAGE) {
+                    sendPartnerMessage(channel);
+                    console.log("Message missing but the rest is ok");
+                    return resolve({isPartner: true, channel});
+                }
+                if(count === guildChannels.size) {
+                    return resolve({isPartner: false, channel: null});
+                }
+            });
         });
     });
+}
+
+async function checkPartnerServersValid() {
+    for(const pGuildId in partnerInformation) {
+        if(partnerInformation[pGuildId]["partner"]) {
+            const guild = client.guilds.get(pGuildId);
+            if(guild) {
+                console.log("test1");
+                const information = await checkGuild(guild);
+                console.log("test2");
+                if(!information.isPartner) {
+                    removePartner(guild);
+                    console.log("Partner " + pGuildId + "not valid. Partnership removed");
+                }
+                else {
+                    information.channel.messages.get(partnerInformation[pGuildId]["partnerMessage"]["id"]).edit(PARTNER_MESSAGE);
+                    console.log("Updating partner message on server " + pGuildId);
+                }
+            }
+            else {
+                removePartnerById(pGuildId);
+                console.log("Partner " + pGuildId + " removed");
+            }
+        }
+    }
 }
 
 const commandFunction = {

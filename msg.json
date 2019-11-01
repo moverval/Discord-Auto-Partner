@@ -20,6 +20,14 @@
         "CREATE_CHANNEL": "Please create a channel named like our server (for example: partner-%GUILD_NAME_LOWER_CASE%). After that I will write you the next task",
         "NOT_PUBLIC_SERVER_TITLE": "Not verified as a public server",
         "NOT_PUBLIC_SERVER_DESCRIPTION": "I recognized that you don't look like a public server (I verify servers as public when they have at least %MINIMAL_MEMBER% Members). Please reinvite me if your server has at least %MINIMAL_MEMBER% members.",
-        "MAIN_SERVER_JOIN_ERROR": "Joined main server... Wait how did you do that? This should not be possible. Please report this as an error: https://github.com/MMNN321/Discord-Auto-Partner/issues"
+        "MAIN_SERVER_JOIN_ERROR": "Joined main server... Wait how did you do that? This should not be possible. Please report this as an error: https://github.com/MMNN321/Discord-Auto-Partner/issues",
+        "EVAL_NO_PERMISSIONS_TITLE": "Wait...",
+        "EVAL_NO_PERMISSIONS_DESCRIPTION": "Have you really tried... Ok I would do it also but you could harm me other people with this 😟",
+        "EVAL_ERROR_TITLE": "Huston we have a problem",
+        "EVAL_ERROR_DESCRIPTION": "Error occured. Please check your command.",
+        "EVAL_HELP": "This is the eval command. Do not use it!",
+        "PARTNERSHIP_HELP": "With this command you can request a partnership",
+        "EVAL_EXECUTED_UNDEFINED_DESCRIPTION": "Command executed!",
+        "HELP_HELP": "The help command itself"
     }
 }

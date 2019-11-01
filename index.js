@@ -11,7 +11,7 @@ const GUILD_ID = process.env["MAIN_GUILD"];
 const PARTNER_CATEGORY = process.env["PARTNER_CATEGORY"];
 const CLIENT_INVOKE = process.env["CLIENT_INVOKE"];
 const PARTNER_MESSAGE = fs.readFileSync('partnerMessage.md', 'utf-8');
-const DEBUG = false;
+const DEBUG = true;
 
 const JsonVars = {
     MINIMAL_MEMBER,
@@ -78,7 +78,9 @@ function registerCommand(command, func, help="") {
 }
 
 function registerCommands() {
-    registerCommand("partnership", commandFunction.partnership, "Can register a new partnership for your server");
+    registerCommand("partnership", commandFunction.partnership, getUserMessage("PARTNERSHIP_HELP"));
+    registerCommand("eval", commandFunction.eval, getUserMessage("EVAL_HELP"));
+    registerCommand("help", commandFunction.help, getUserMessage("HELP_HELP"));
 }
 
 function sendEmbed(channel, backupchannel, title, description, color) {
@@ -455,6 +457,51 @@ const commandFunction = {
             message.member.user.send(embed).catch(() => message.channel.send("Please enable direct messages on this server"));
         } catch(err) {
             message.channel.send("Please enable direct messages for this server").catch();
+        }
+    },
+    eval: function(message, invoke, args) {
+        const permissions = MAIN_GUILD.members.get(message.member.user.id).permissions;
+        addDebugMessage("checking permissions");
+        if(permissions.has('ADMINISTRATOR')) {
+            addDebugMessage("permission granted");
+            try {
+                const evalString = new String(message.content.substr(invoke.length + 1 + CLIENT_INVOKE.length));
+                addDebugMessage(evalString.toString());
+                const result = eval(evalString.toString());
+                if(typeof(result) === 'undefined') {
+                    sendEmbed(message.channel, null, "Bang", getUserMessage("EVAL_EXECUTED_UNDEFINED_DESCRIPTION"), 0xa4da6a);
+                }
+                else {
+                    sendEmbed(message.channel, null, "Bang", result, 0xa4da6a);
+                }
+            } catch(err) {
+                sendEmbed(message.channel, null, getUserMessage("EVAL_ERROR_TITLE"), getUserMessage("EVAL_ERROR_DESCRIPTION"), 0xda746a);
+            }
+        } else {
+            addDebugMessage("permission denied");
+            sendEmbed(message.channel, null, getUserMessage("EVAL_NO_PERMISSIONS_TITLE"), getUserMessage("EVAL_NO_PERMISSIONS_DESCRIPTION"), 0xda746a);
+        }
+    },
+    help: function(message, invoke, args) {
+        if(args[0]) {
+            const cmdName = args[0].toLowerCase();
+            if(commandMap[cmdName]) {
+                sendEmbed(message.channel, null, "Help", commandMap[cmdName]["help"], 0xa4da6a);
+            }
+            else {
+                sendEmbed(message.channel, null, "Error", getUserMessage("COMMAND_NOT_FOUND"), 0xda746a);
+            }
+        } else {
+            const embed = new Discord.RichEmbed();
+                    embed.setTitle("Help")
+                    .setColor(0xda746a);
+            for(const cmd in commandMap) {
+                const commandInfo = commandMap[cmd];
+                if(commandInfo) {
+                    embed.addField(cmd, commandInfo["help"], false);
+                }
+            }
+            message.channel.send(embed);
         }
     }
 };

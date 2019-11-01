@@ -10,7 +10,7 @@ const GUILD_NAME = process.env["MAIN_GUILD_NAME"];
 const GUILD_ID = process.env["MAIN_GUILD"];
 const PARTNER_CATEGORY = process.env["PARTNER_CATEGORY"];
 const CLIENT_INVOKE = process.env["CLIENT_INVOKE"];
-const PARTNER_MESSAGE = fs.readFileSync('pm.md', 'utf-8');
+const PARTNER_MESSAGE = fs.readFileSync('partnerMessage.md', 'utf-8');
 const DEBUG = false;
 
 const JsonVars = {
@@ -19,7 +19,6 @@ const JsonVars = {
     GUILD_ID,
     PARTNER_CATEGORY,
     PARTNER_MESSAGE,
-    DEBUG,
     CLIENT_INVOKE,
     GUILD_NAME_LOWER_CASE: GUILD_NAME.toLowerCase()
 };
@@ -262,7 +261,7 @@ function getChatExpressionStatus(expression) {
         if(ChannelExpression[status] !== undefined) {
             const statusValue = ChannelExpression[status];
             if(expression & statusValue) {
-                message = statusConfig["ChatExpression"][status];
+                message = replaceStringVar(statusConfig["ChatExpression"][status]);
             }
         } else return false;
     }

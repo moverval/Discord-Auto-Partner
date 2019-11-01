@@ -28,6 +28,9 @@
         "EVAL_HELP": "This is the eval command. Do not use it!",
         "PARTNERSHIP_HELP": "With this command you can request a partnership",
         "EVAL_EXECUTED_UNDEFINED_DESCRIPTION": "Command executed!",
-        "HELP_HELP": "The help command itself"
+        "HELP_HELP": "The help command itself",
+        "LOG_SITE_NOT_EXISTS": "Site does not exist",
+        "LOG_NO_PERMISSIONS": "Permission denied, sorry :(",
+        "LOG_HELP": "A log for the devs"
     }
 }

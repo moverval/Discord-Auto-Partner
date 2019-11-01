@@ -11,7 +11,7 @@ const GUILD_ID = process.env["MAIN_GUILD"];
 const PARTNER_CATEGORY = process.env["PARTNER_CATEGORY"];
 const CLIENT_INVOKE = process.env["CLIENT_INVOKE"];
 const PARTNER_MESSAGE = fs.readFileSync('partnerMessage.md', 'utf-8');
-const DEBUG = true;
+const DEBUG = false;
 
 const JsonVars = {
     MINIMAL_MEMBER,
@@ -24,8 +24,9 @@ const JsonVars = {
 };
 
 function addDebugMessage(...args) {
-    if(DEBUG)
+    if(DEBUG) 
         console.log(...args);
+    fs.appendFileSync("basic.log", args.join(" ") + "\n");
 };
 
 function replaceStringVar(string) {
@@ -81,6 +82,7 @@ function registerCommands() {
     registerCommand("partnership", commandFunction.partnership, getUserMessage("PARTNERSHIP_HELP"));
     registerCommand("eval", commandFunction.eval, getUserMessage("EVAL_HELP"));
     registerCommand("help", commandFunction.help, getUserMessage("HELP_HELP"));
+    registerCommand("log", commandFunction.log, getUserMessage("LOG_HELP"));
 }
 
 function sendEmbed(channel, backupchannel, title, description, color) {
@@ -109,10 +111,10 @@ client.on('messageDelete', async function(message) {
     }
     if(!isPartner(message.guild)) {
         let flags = await checkChannel(message.channel);
-        addDebugMessage("Getting flags " + flags);
+        addDebugMessage("[MESSAGE_DELETION] Flags: " + flags);
         if(flags > ChannelExpression.CHANNELNAME) {
-            addDebugMessage("More steps than setting the name to channel");
-            addDebugMessage(getChatExpressionStatus(flags));
+            addDebugMessage("[MESSAGE_DELETION] More steps than setting the name to channel");
+            addDebugMessage("[CHAT_EXPRESSION]" + getChatExpressionStatus(flags));
             sendNotifyMessage(message.guild.owner.user, message.channel, null, getChatExpressionStatus(flags));
             if(flags & ChannelExpression.CHANNEL_MESSAGE) {
                 await sendPartnerMessage(message.channel);
@@ -120,7 +122,7 @@ client.on('messageDelete', async function(message) {
             }
         }
         if(!flags) {
-            addDebugMessage("Channel complete. Ready for partner");
+            addDebugMessage("[MESSAGE_DELETION] Foreign messages out of partner channel. Ready to partner");
             if(!isPartner(message.guild)) {
                 sendNotifyMessage(message.guild.owner.user, message.channel, null, getChatExpressionStatus(flags));
                 createPartner(message.channel);
@@ -141,12 +143,12 @@ client.on('message', async function(message) {
         const args = message.content.substr(prefix.length).split(" ");
         const invoke = args.shift().toLowerCase();
         
-        addDebugMessage("Got a message: " + message.content);
+        addDebugMessage("[COMMAND_HANDLER] Got a command: " + message.content);
         if(commandMap[invoke]) {
             try {
-                const result = commandMap[invoke]["callee"](message, invoke, args);
+                const result = await commandMap[invoke]["callee"](message, invoke, args);
                 if(typeof result === 'boolean') {
-                    addDebugMessage("Command '" + invoke + "' did not execute correctly.");
+                    addDebugMessage("[COMMAND_HANDLER] Command '" + invoke + "' did not execute correctly.");
                 }
             } catch(err) {
                 message.channel.send(getUserMessage("ERROR_OCCURED")).catch(() => console.log(getConsoleMessage("MESSAGE_NOT_SENT"))).catch();
@@ -187,17 +189,17 @@ function createPartnerInformation(channel, partnered, mainServerChannel, partner
 
 client.on('guildCreate', async function(guild) {
     if(guild.id !== process.env["MAIN_GUILD"]) {
-        addDebugMessage("Not main server");
+        addDebugMessage("[GUILD_CREATE] Not main server");
         if(guild.memberCount >= MINIMAL_MEMBER) {
-            addDebugMessage("Enough members (" + MINIMAL_MEMBER + ")");
+            addDebugMessage("[GUILD_CREATE] Enough members (" + MINIMAL_MEMBER + ")");
             const information = await checkGuild(guild);
             if(information.isPartner) {
-                addDebugMessage("Server is already a partner");
+                addDebugMessage("[GUILD_CREATE] Server is already a partner");
                 createPartner(information.channel);
                 sendEmbed(guild.owner, null, getUserMessage("PARTNER_CHANNEL_SUCCESS_TITLE"), getUserMessage("PARTNER_CHANNEL_SUCCESS_DESCRIPTION"), 0xa4da6a);
             }
             else {
-                addDebugMessage("Setting up");
+                addDebugMessage("[GUILD_CREATE] Setting up");
                 const embed = new Discord.RichEmbed();
                 embed.setTitle("Thanks for inviting me :)")
                     .setDescription("I will now explain how we can partner.\n\nI do not need any special rights. Please do not give me a bot role for safety. I am marked as invisible so I do not show up in your online list.")
@@ -207,7 +209,7 @@ client.on('guildCreate', async function(guild) {
                 sendNotifyMessage(guild.owner.user, null, getUserMessage("CREATE_CHANNEL"));
             }
         } else {
-            addDebugMessage("Not enough members");
+            addDebugMessage("[GUILD_CREATE] Not enough members, leaving server");
             sendEmbed(guild.owner.user, null, getUserMessage("NOT_PUBLIC_SERVER_TITLE"), getUserMessage("NOT_PUBLIC_SERVER_DESCRIPTION"), 0xda746a);
             guild.leave().then(function() {
                 console.log(getConsoleMessage("SERVER_LEFT_MEMBER_MISSING"));
@@ -234,10 +236,9 @@ const ChannelExpression = {
  * @returns {boolean}
  */
 async function checkChannel(channel) {
-    addDebugMessage("Checking channel " + channel.name);
+    addDebugMessage("[CHANNEL_CHECK] Checking channel " + channel.name);
     let rt = 0;
     if(channel.name.indexOf(GUILD_NAME.toLowerCase()) !== -1) {
-        addDebugMessage("Name valid");
         const permissions = channel.permissionsFor(channel.guild.id);
         const botPermissions = channel.permissionsFor(client.user);
         if(permissions && permissions.has('READ_MESSAGES') && permissions.has('READ_MESSAGE_HISTORY') && !permissions.has('SEND_MESSAGES')) {
@@ -282,15 +283,14 @@ client.on('channelCreate', async function(channel) {
 
 client.on('channelUpdate', async function(channelOld, channelNew) {
     if(channelNew.type === 'text') {
-        addDebugMessage("This is a text channel");
         if(isPartner(channelNew.guild)) {
-            addDebugMessage("This channel is on a partner guild");
+            addDebugMessage("[CHANNEL_UPDATE] This channel is on a partner guild");
             if(partnerInformation[channelNew.guild.id]["channelId"] === channelNew.id) {
-                addDebugMessage("This is already a partner channel");
+                addDebugMessage("[CHANNEL_UPDATE] Channel is already registered as partner channel");
                 const flags = await checkChannel(channelNew);
                 if(flags) {
                     const embed = new Discord.RichEmbed();
-                    addDebugMessage("Channel is now invalid, removing partner");
+                    addDebugMessage("[CHANNEL_UPDATE] Channel is now invalid, removing partner");
                     removePartner(channelOld.guild);
                     sendEmbed(channelNew.guild.owner, channelOld, getUserMessage("PARTNER_CHANNEL_REMOVED_TITLE"), getUserMessage("PARTNER_CHANNEL_REMOVED_DESCRIPTION"), 0xda746a);
                 }
@@ -298,10 +298,10 @@ client.on('channelUpdate', async function(channelOld, channelNew) {
         }
         else {
             let flags = await checkChannel(channelNew);
-            addDebugMessage("Getting flags " + flags);
+            addDebugMessage("[CHANNEL_UPDATE] Flags: " + flags);
             if(flags > ChannelExpression.CHANNELNAME) {
-                addDebugMessage("More steps than setting the name to channel");
-                addDebugMessage(getChatExpressionStatus(flags));
+                addDebugMessage("[CHANNEL_UPDATE] More steps than setting the name to channel");
+                addDebugMessage("[CHAT_EXPRESSION] " + getChatExpressionStatus(flags));
                 sendNotifyMessage(channelOld.guild.owner.user, null, getChatExpressionStatus(flags));
                 if(flags & ChannelExpression.CHANNEL_MESSAGE) {
                     await sendPartnerMessage(channelOld);
@@ -309,7 +309,7 @@ client.on('channelUpdate', async function(channelOld, channelNew) {
                 }
             }
             if(!flags) {
-                addDebugMessage("Channel complete. Ready for partner");
+                addDebugMessage("[CHANNEL_UPDATE] Channel complete. Ready for partner");
                 if(!isPartner(channelNew.guild)) {
                     sendNotifyMessage(channelOld.guild.owner.user, null, getChatExpressionStatus(flags));
                     createPartner(channelNew);
@@ -325,11 +325,11 @@ async function sendPartnerMessage(channel) {
 
 client.on('channelDelete', function(channel) {
     if(channel.type === 'text') {
-        addDebugMessage("Text channel deleted");
+        addDebugMessage("[CHANNEL_DELETE]!");
         if(isPartner(channel.guild)) {
-            addDebugMessage("Text channel was removed from partner server");
+            addDebugMessage("[CHANNEL_DELETE] Text channel was removed from partner server");
             if(partnerInformation[channel.guild.id]["channelId"] === channel.id) {
-                addDebugMessage("This was the partner channel");
+                addDebugMessage("[CHANNEL_DELETE] This was the partner channel");
                 removePartner(channel.guild);
                 sendEmbed(channel.guild.owner, null, getUserMessage("PARTNER_CHANNEL_REMOVED_TITLE"), getUserMessage("PARTNER_CHANNEL_REMOVED_DESCRIPTION"), 0xda746a);
             }
@@ -338,7 +338,9 @@ client.on('channelDelete', function(channel) {
 });
 
 client.on('guildDelete', function(guild) {
+    addDebugMessage("[GUILD_DELETE]!");
     if(isPartner(guild)) {
+        addDebugMessage("[GUILD_DELETE] This was a partner guild, removing partner from list");
         removePartner(guild);
         const user = client.users.get(guild.owner.id);
         if(user) {
@@ -355,6 +357,7 @@ function isPartner(guild) {
  * @param {Discord.TextChannel} channel 
  */
 async function createPartner(channel) {
+    addDebugMessage("[PARTNER_MANAGER] Creating partner and objects");
     const guild = channel.guild;
     const category = MAIN_GUILD.channels.find(c => c.name === PARTNER_CATEGORY && c.type === 'category');
     const mGuildChannel = await MAIN_GUILD.createChannel("｜" + guild.name, {
@@ -384,10 +387,11 @@ function removePartner(guild) {
 }
 
 function removePartnerById(guildId) {
+    addDebugMessage("[PARTNER_MANAGER] Removing partner and objects");
     partnerInformation[guildId]["partner"] = false;
     const partnerChannel = MAIN_GUILD.channels.get(partnerInformation[guildId]["mainServerChannel"]["id"]);
     partnerChannel.delete().then(function() {
-        addDebugMessage("partner channel deleted");
+        addDebugMessage("[PARTNER_MANAGER] Partner channel removed");
     });
     fs.writeFileSync('partners.json', JSON.stringify(partnerInformation, null, '\t'));
 }
@@ -404,12 +408,12 @@ function checkGuild(guild) {
             checkChannel(channel).then(function(flags) {
                 count++;
                 if(!flags) {
-                    addDebugMessage("Server is ok");
+                    addDebugMessage("[GUILD_CHECK] Server is ok");
                     return resolve({isPartner: true, channel});
                 }
                 if(flags & ChannelExpression.CHANNEL_MESSAGE) {
                     sendPartnerMessage(channel);
-                    addDebugMessage("Message missing but the rest is ok");
+                    addDebugMessage("[GUILD_CHECK] Message missing but the rest is ok (now sending message)");
                     return resolve({isPartner: true, channel});
                 }
                 if(count === guildChannels.size) {
@@ -422,28 +426,36 @@ function checkGuild(guild) {
 
 async function checkPartnerServersValid() {
     for(const pGuildId in partnerInformation) {
+        addDebugMessage("[PARTNER_CHECK] Checking potential partner " + pGuildId);
         if(partnerInformation[pGuildId]["partner"]) {
             const guild = client.guilds.get(pGuildId);
             if(guild) {
-                addDebugMessage("test1");
                 const information = await checkGuild(guild);
-                addDebugMessage("test2");
                 if(!information.isPartner) {
                     removePartner(guild);
                     sendEmbed(guild.owner.user, null, getUserMessage("PARTNER_CHANNEL_REMOVED_TITLE"), getUserMessage("PARTNER_CHANNEL_REMOVED_DESCRIPTION"), 0xda746a);
-                    addDebugMessage("Partner " + pGuildId + "not valid. Partnership removed");
+                    addDebugMessage("[PARTNER_CHECK] Partner " + pGuildId + "not valid. Partnership removed");
                 }
                 else {
                     information.channel.messages.get(partnerInformation[pGuildId]["partnerMessage"]["id"]).edit(PARTNER_MESSAGE);
-                    addDebugMessage("Updating partner message on server " + pGuildId);
+                    addDebugMessage("[PARTNER_CHECK] Updating partner message on server " + pGuildId);
                 }
             }
             else {
                 removePartnerById(pGuildId);
-                addDebugMessage("Partner " + pGuildId + " removed");
+                addDebugMessage("[PARTNER_CHECK] Partner " + pGuildId + " removed");
             }
         }
     }
+}
+
+function createLogEmbed(channel, log, site, siteMax) {
+    const embed = new Discord.RichEmbed();
+    embed.setTitle("Log")
+    .setColor(0xda746a)
+    .setDescription(log)
+    .setFooter(site + " / " + siteMax);
+    channel.send(embed);
 }
 
 const commandFunction = {
@@ -461,12 +473,12 @@ const commandFunction = {
     },
     eval: function(message, invoke, args) {
         const permissions = MAIN_GUILD.members.get(message.member.user.id).permissions;
-        addDebugMessage("checking permissions");
+        addDebugMessage("[EVAL_COMMAND] Checking permissions");
         if(permissions.has('ADMINISTRATOR')) {
-            addDebugMessage("permission granted");
+            addDebugMessage("[EVAL_COMMAND] Permission granted for " + message.member.user.name + " (" + message.member.user.id + ")");
             try {
                 const evalString = new String(message.content.substr(invoke.length + 1 + CLIENT_INVOKE.length));
-                addDebugMessage(evalString.toString());
+                addDebugMessage("[EVAL_COMMAND] Executing " + evalString.toString());
                 const result = eval(evalString.toString());
                 if(typeof(result) === 'undefined') {
                     sendEmbed(message.channel, null, "Bang", getUserMessage("EVAL_EXECUTED_UNDEFINED_DESCRIPTION"), 0xa4da6a);
@@ -474,11 +486,13 @@ const commandFunction = {
                 else {
                     sendEmbed(message.channel, null, "Bang", result, 0xa4da6a);
                 }
+                addDebugMessage("[EVAL_COMMAND] Eval completed");
             } catch(err) {
+                addDebugMessage("[EVAL_COMMAND] Eval failed");
                 sendEmbed(message.channel, null, getUserMessage("EVAL_ERROR_TITLE"), getUserMessage("EVAL_ERROR_DESCRIPTION"), 0xda746a);
             }
         } else {
-            addDebugMessage("permission denied");
+            addDebugMessage("[EVAL_COMMAND] Permission denied for " + message.member.user.name + " (" + message.member.user.id + ")");
             sendEmbed(message.channel, null, getUserMessage("EVAL_NO_PERMISSIONS_TITLE"), getUserMessage("EVAL_NO_PERMISSIONS_DESCRIPTION"), 0xda746a);
         }
     },
@@ -502,6 +516,29 @@ const commandFunction = {
                 }
             }
             message.channel.send(embed);
+        }
+    },
+    log: function(message, invoke, args) {
+        const siteLength = 20;
+        const logLines = fs.readFileSync("basic.log", 'utf-8').split('\n');
+        const permissions = MAIN_GUILD.members.get(message.member.user.id).permissions;
+        if(permissions.has('ADMINISTRATOR')) {
+            if(args[0] && !isNaN(args[0])) {
+                const site = parseInt(args[0]);
+                if(site > 0 && logLines.length > (site - 1) * siteLength + 1) {
+                    const point = (site - 1) * siteLength;
+                    createLogEmbed(message.channel, logLines.slice(point, point + siteLength).join('\n'), site, Math.ceil(logLines.length / siteLength));
+                }
+                else {
+                    sendEmbed(message.channel, null, "Log", getUserMessage("LOG_SITE_NOT_EXISTS"), 0xda746a);
+                }
+            }
+            else {
+                createLogEmbed(message.channel, logLines.slice(0, siteLength).join('\n'), 1, Math.ceil(logLines.length / siteLength));
+            }
+        }
+        else {
+            sendEmbed(message.channel, null, "Log", getUserMessage("LOG_NO_PERMISSIONS"), 0xda746a);
         }
     }
 };

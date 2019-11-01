@@ -2,9 +2,9 @@
     "ChatExpression": {
         "NONE": "Unsere Kooperation wurde abgeschlossen! Bei weiteren Anliegen kontaktiere einen Inhaber von DeineWerbung! 🎉",
         "CHANNELNAME": "Bitte erstelle einen Channel namens DeineWerbung, um fortzufahren!",
-        "CHANNELPERMISSION_EVERYONE": "Bitte stelle fest, ich habe alle Berechtigung die ich brauche!",
-        "CHANNELPERMISSION_BOT": "Ich kann in den Channel nicht schreiben, bitte ändere das! ",
+        "CHANNELPERMISSION_EVERYONE": "Bitte stelle fest, dass ich die @everyone Berechtigung habe!",
+        "CHANNELPERMISSION_BOT": "Bitte stelle fest, dass ich in den Kanal schreiben kann! ",
         "CHANNEL_MESSAGE": "Text wurde in den Channel gesendet! ",
-        "CHANNEL_FOREIGN_MESSAGE": "Bitte entferne alle Nachrichten, außer meine! "
+        "CHANNEL_FOREIGN_MESSAGE": "Bitte entferne alle Nachrichten, außer meine!"
     }
 }

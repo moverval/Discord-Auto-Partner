@@ -1,0 +1,25 @@
+{
+    "ConsoleMessage": {
+        "BOT_LOGGED": "Bot logged in.",
+        "BOT_UNDEFINED_MAIN_SERVER": "Bot is not on main server. Please invite your application first and then start the bot.",
+        "BOT_SERVERS_CHECK_STARTUP_COMPLETE": "Servers syncronized.",
+        "MESSAGE_NOT_SENT": "Message rejected.",
+        "SERVER_LEFT_MEMBER_MISSING": "Server left (Member count low)"
+    },
+    "UserMessage": {
+        "ENABLE_DIRECT_MESSAGES": "Please enable direct messages. I need to send you some private things.",
+        "ERROR_OCCURED": "Error occured. Please tell us your error by visiting: https://github.com/MMNN321/Discord-Auto-Partner/issues",
+        "PARTNER_CHANNEL_REMOVED_TITLE": "Partner channel removed",
+        "PARTNER_CHANNEL_REMOVED_DESCRIPTION": "Partner channel removed because partner channel turned to invalid.",
+        "PARTNER_CHANNEL_REMOVED_GUILD_LEFT_DESCRIPTION": "I lost track of the current status. I need to be on your server to verify that the partnership is set up correctly",
+        "COMMAND_NOT_FOUND": "Command not found.",
+        "PARTNER_CHANNEL_SUCCESS_TITLE": "Success",
+        "PARTNER_CHANNEL_SUCCESS_DESCRIPTION": "All requirements are fullfilled. A partner channel is now avavailable for you :)",
+        "INVITE_THANKS_TITLE": "Thanks for inviting me :)",
+        "INVITE_THANKS_DESCRIPTION": "I will now explain how we can partner.\n\nI do not need any special rights. Please do not give me a bot role for safety. I am marked as invisible so I do not show up in your online list.",
+        "CREATE_CHANNEL": "Please create a channel named like our server (for example: partner-%GUILD_NAME_LOWER_CASE%). After that I will write you the next task",
+        "NOT_PUBLIC_SERVER_TITLE": "Not verified as a public server",
+        "NOT_PUBLIC_SERVER_DESCRIPTION": "I recognized that you don't look like a public server (I verify servers as public when they have at least %MINIMAL_MEMBER% Members). Please reinvite me if your server has at least %MINIMAL_MEMBER% members.",
+        "MAIN_SERVER_JOIN_ERROR": "Joined main server... Wait how did you do that? This should not be possible. Please report this as an error: https://github.com/MMNN321/Discord-Auto-Partner/issues"
+    }
+}

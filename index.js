@@ -98,8 +98,8 @@ client.on('messageDelete', async function(message) {
     if(isPartner(message.guild)) {
         if(partnerInformation[message.guild.id]["channel"]["id"] === message.channel.id) {
             if(partnerInformation[message.guild.id]["partnerMessage"]["id"] === message.id) {
-                sendNotifyMessage(message.guild.owner.user, "Partner message updated");
-                const partnerMessage = await message.channel.send(PARTNER_MESSAGE);
+                sendNotifyMessage(message.guild.owner.user, null, "Partner message updated");
+                const partnerMessage = await message.channel.send(PARTNER_MESSAGE).catch();
                 partnerInformation[message.guild.id]["partnerMessage"]["id"] = partnerMessage.id;
                 partnerInformation[message.guild.id]["partnerMessage"]["lastUpdate"] = new Date();
                 fs.writeFileSync('partners.json', JSON.stringify(partnerInformation, null, '\t'));
@@ -112,7 +112,7 @@ client.on('messageDelete', async function(message) {
         if(flags > ChannelExpression.CHANNELNAME) {
             addDebugMessage("More steps than setting the name to channel");
             addDebugMessage(getChatExpressionStatus(flags));
-            sendNotifyMessage(message.guild.owner.user, message.channel, getChatExpressionStatus(flags));
+            sendNotifyMessage(message.guild.owner.user, message.channel, null, getChatExpressionStatus(flags));
             if(flags & ChannelExpression.CHANNEL_MESSAGE) {
                 await sendPartnerMessage(message.channel);
                 flags = await checkChannel(message.channel);
@@ -121,7 +121,7 @@ client.on('messageDelete', async function(message) {
         if(!flags) {
             addDebugMessage("Channel complete. Ready for partner");
             if(!isPartner(message.guild)) {
-                sendNotifyMessage(message.guild.owner.user, message.channel, getChatExpressionStatus(flags));
+                sendNotifyMessage(message.guild.owner.user, message.channel, null, getChatExpressionStatus(flags));
                 createPartner(message.channel);
             }
         }
@@ -148,11 +148,11 @@ client.on('message', async function(message) {
                     addDebugMessage("Command '" + invoke + "' did not execute correctly.");
                 }
             } catch(err) {
-                message.channel.send(getUserMessage("ERROR_OCCURED")).catch(() => console.log(getConsoleMessage("MESSAGE_NOT_SENT")));
+                message.channel.send(getUserMessage("ERROR_OCCURED")).catch(() => console.log(getConsoleMessage("MESSAGE_NOT_SENT"))).catch();
                 console.error(err);
             }
         } else {
-            message.channel.send(getUserMessage("COMMAND_NOT_FOUND")).catch(() => console.log(getConsoleMessage("MESSAGE_NOT_SENT")));
+            message.channel.send(getUserMessage("COMMAND_NOT_FOUND")).catch(() => console.log(getConsoleMessage("MESSAGE_NOT_SENT"))).catch();
         }
     }
 });
@@ -201,7 +201,7 @@ client.on('guildCreate', async function(guild) {
                 embed.setTitle("Thanks for inviting me :)")
                     .setDescription("I will now explain how we can partner.\n\nI do not need any special rights. Please do not give me a bot role for safety. I am marked as invisible so I do not show up in your online list.")
                     .setColor(0xa4da6a);
-                guild.owner.user.send(embed);
+                guild.owner.user.send(embed).catch();
                 sendEmbed(guild.owner, null, getUserMessage("INVITE_THANKS_TITLE"), getUserMessage("INVITE_THANKS_DESCRIPTION"), 0xa4da6a);
                 sendNotifyMessage(guild.owner.user, null, getUserMessage("CREATE_CHANNEL"));
             }
@@ -274,7 +274,7 @@ client.on('channelCreate', async function(channel) {
         const flags = await checkChannel(channel);
         if(flags === ChannelExpression.NONE) return;
         if(!(flags & ChannelExpression.CHANNELNAME)) {
-            sendNotifyMessage(channel.guild.owner, channel, getChatExpressionStatus(flags));
+            sendNotifyMessage(channel.guild.owner, channel, null, getChatExpressionStatus(flags));
         }
     }
 });
@@ -319,7 +319,7 @@ client.on('channelUpdate', async function(channelOld, channelNew) {
 });
 
 async function sendPartnerMessage(channel) {
-    await channel.send(PARTNER_MESSAGE);
+    await channel.send(PARTNER_MESSAGE).catch();
 }
 
 client.on('channelDelete', function(channel) {
@@ -331,7 +331,6 @@ client.on('channelDelete', function(channel) {
                 addDebugMessage("This was the partner channel");
                 removePartner(channel.guild);
                 sendEmbed(channel.guild.owner, null, getUserMessage("PARTNER_CHANNEL_REMOVED_TITLE"), getUserMessage("PARTNER_CHANNEL_REMOVED_DESCRIPTION"), 0xda746a);
-                channel.guild.owner.send(embed);
             }
         }
     }
@@ -456,7 +455,7 @@ const commandFunction = {
             .setFooter("For our safety");
             message.member.user.send(embed).catch(() => message.channel.send("Please enable direct messages on this server"));
         } catch(err) {
-            message.channel.send("Please enable direct messages for this server");
+            message.channel.send("Please enable direct messages for this server").catch();
         }
     }
 };

@@ -139,7 +139,7 @@ client.on('message', async function(message) {
         }
     }
     const prefix = process.env["CLIENT_INVOKE"];
-    if(message.channel.type === 'text' && message.content.startsWith(prefix) && !message.member.user.bot && message.member.user.id !== client.user.id) {
+    if(message.content.startsWith(prefix) && !message.member.user.bot && message.member.user.id !== client.user.id) {
         const args = message.content.substr(prefix.length).split(" ");
         const invoke = args.shift().toLowerCase();
         
@@ -466,12 +466,12 @@ async function checkPartnerServersValid() {
     }
 }
 
-function createLogEmbed(channel, log, site, siteMax) {
+function createLogEmbed(channel, log, site, siteMax, fileSize) {
     const embed = new Discord.RichEmbed();
     embed.setTitle("Log")
     .setColor(0xda746a)
     .setDescription(log)
-    .setFooter(site + " / " + siteMax);
+    .setFooter(site + " / " + siteMax + "    " + fileSize);
     channel.send(embed);
 }
 
@@ -536,7 +536,7 @@ const commandFunction = {
         }
     },
     log: function(message, invoke, args) {
-        const siteLength = 20;
+        const siteLength = 25;
         const logLines = fs.readFileSync("basic.log", 'utf-8').split('\n');
         const permissions = MAIN_GUILD.members.get(message.member.user.id).permissions;
         if(permissions.has('ADMINISTRATOR')) {
@@ -544,14 +544,14 @@ const commandFunction = {
                 const site = parseInt(args[0]);
                 if(site > 0 && logLines.length > (site - 1) * siteLength + 1) {
                     const point = (site - 1) * siteLength;
-                    createLogEmbed(message.channel, logLines.slice(point, point + siteLength).join('\n'), site, Math.ceil(logLines.length / siteLength));
+                    createLogEmbed(message.channel, logLines.slice(point, point + siteLength).join('\n'), site, Math.ceil(logLines.length / siteLength), Math.round(fs.statSync('basic.log').size / 1000) +  "kb");
                 }
                 else {
                     sendEmbed(message.channel, null, "Log", getUserMessage("LOG_SITE_NOT_EXISTS"), 0xda746a);
                 }
             }
             else {
-                createLogEmbed(message.channel, logLines.slice(0, siteLength).join('\n'), 1, Math.ceil(logLines.length / siteLength));
+                createLogEmbed(message.channel, logLines.slice(0, siteLength).join('\n'), 1, Math.ceil(logLines.length / siteLength), Math.round(fs.statSync('basic.log').size / 1000) +  "kb");
             }
         }
         else {

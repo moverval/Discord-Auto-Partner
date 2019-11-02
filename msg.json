@@ -31,6 +31,8 @@
         "HELP_HELP": "The help command itself",
         "LOG_SITE_NOT_EXISTS": "Site does not exist",
         "LOG_NO_PERMISSIONS": "Permission denied, sorry :(",
-        "LOG_HELP": "A log for the devs"
+        "LOG_HELP": "A log for the devs",
+        "POTENTIAL_CHANNEL_FOUND_TITLE": "Potential channel found",
+        "POTENTIAL_CHANNEL_FOUND_DESCRIPTION": "I will now explain how you can complete the setup :)"
     }
 }

@@ -101,7 +101,7 @@ client.on('messageDelete', async function(message) {
     if(isPartner(message.guild)) {
         if(partnerInformation[message.guild.id]["channel"]["id"] === message.channel.id) {
             if(partnerInformation[message.guild.id]["partnerMessage"]["id"] === message.id) {
-                sendNotifyMessage(message.guild.owner.user, null, "Partner message updated");
+                sendNotifyMessage(message.guild.owner.user, null, getUserMessage("MESSAGE_UPDATED"));
                 const partnerMessage = await message.channel.send(PARTNER_MESSAGE).catch();
                 partnerInformation[message.guild.id]["partnerMessage"]["id"] = partnerMessage.id;
                 partnerInformation[message.guild.id]["partnerMessage"]["lastUpdate"] = new Date();

@@ -17,7 +17,7 @@
         "PARTNER_CHANNEL_SUCCESS_DESCRIPTION": "Alle Anforderungen wurden erfüllt. Ein Partnerkanal ist nun für dich verfügbar :)",
         "INVITE_THANKS_TITLE": "Danke, dass du mich eingeladen hast :)",
         "INVITE_THANKS_DESCRIPTION": "Ich werde jetzt erklären, wie wir die Partnerschaft planen. Ich brauche keine Sonderrechte. Bitte gebe mir keine anderen Botrollen für die Sicherheit deines Servers. Ich bin als unsichtbar markiert, sodass ich nicht in deiner Online-Liste auftauche.",
-        "CREATE_CHANNEL": "Bitte erstellen Sie einen Kanal namens %GUILD_NAME_LOWER_CASE%. Danach werde ich dir die nächste Aufgabe schreiben.",
+        "CREATE_CHANNEL": "Bitte erstelle einen Kanal namens %GUILD_NAME_LOWER_CASE%. Danach werde ich dir die nächste Aufgabe schreiben.",
         "NOT_PUBLIC_SERVER_TITLE": "Nicht als öffentlicher Server verifiziert",
         "NOT_PUBLIC_SERVER_DESCRIPTION": "Dein Server ist unter %MINIMAL_MEMBER% Member! Es ist also keine Partnerschaft möglich! Bitte lade mich wieder ein, wenn dein Server mindestens %MINIMAL_MEMBER% Member hat",
         "MAIN_SERVER_JOIN_ERROR": "Betrete Main Server..... Warte, wie hast du das gemacht? Das sollte nicht möglich sein. Bitte melde das als Fehler: https://github.com/MMNN321/Discord-Auto-Partner/issues",       "EVAL_NO_PERMISSIONS_TITLE": "Warte...",

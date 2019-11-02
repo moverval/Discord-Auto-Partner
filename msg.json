@@ -33,6 +33,7 @@
         "LOG_NO_PERMISSIONS": "Permission denied, sorry :(",
         "LOG_HELP": "A log for the devs",
         "POTENTIAL_CHANNEL_FOUND_TITLE": "Potential channel found",
-        "POTENTIAL_CHANNEL_FOUND_DESCRIPTION": "I will now explain how you can complete the setup :)"
+        "POTENTIAL_CHANNEL_FOUND_DESCRIPTION": "I will now explain how you can complete the setup :)",
+        "MESSAGE_UPDATED": "Parter message updated."
     }
 }

@@ -1,10 +1,10 @@
 {
     "ChatExpression": {
-        "NONE": "Partner channel created. Thanks for partnering. For further requests please contact us on our server.",
-        "CHANNELNAME": "Please create a channel with our servers name. After this step I'll say tell your further details",
-        "CHANNELPERMISSION_EVERYONE": "The channel is not properly setuped. Now you need to set the right permissions to the channel",
-        "CHANNELPERMISSION_BOT": "I cannot write in this channel. I need permissions that I can send messages into it",
-        "CHANNEL_MESSAGE": "Sending message into partner channel...",
-        "CHANNEL_FOREIGN_MESSAGE": "Please remove all messages out of that channel"
+        "NONE": "Partnerschaft abgeschlossen! Bei weiteren Anliegen, bitte ich dich einen Owner von DeineWerbung anzuschreiben! Danke für dein Verständniss und auf eine gute Partnerschaft! 🎉",
+        "CHANNELNAME": "Bitte erstelle einen Channel mit dem Namen deinewerbung. Nachdem du den Channel erstellt hast, werde ich dir mehr infos senden",
+        "CHANNELPERMISSION_EVERYONE": "Bitte schalte in unseren Channel für @everyone die 'Nachrichten versenden' Berechtigung aus und die 'Nachrichten lesen' sowie die 'Nachrichtenverlauf anzeigen' an",
+        "CHANNELPERMISSION_BOT": "Bitte schalte in unseren Channel für mich die 'Nachrichten versenden' sowie die 'Nachrichten lesen' Berechtigung an!",
+        "CHANNEL_MESSAGE": "Meine Nachricht wurde in den Channel gesendet!",
+        "CHANNEL_FOREIGN_MESSAGE": "Bitte entferne immer alle anderen Nachrichten außer meine aus dem Channel"
     }
 }

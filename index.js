@@ -11,7 +11,7 @@ const GUILD_ID = process.env["MAIN_GUILD"];
 const PARTNER_CATEGORY = process.env["PARTNER_CATEGORY"];
 const CLIENT_INVOKE = process.env["CLIENT_INVOKE"];
 const PARTNER_MESSAGE = fs.readFileSync('partnerMessage.md', 'utf-8');
-const DEBUG = true;
+const DEBUG = false;
 
 const JsonVars = {
     MINIMAL_MEMBER,

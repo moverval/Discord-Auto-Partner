@@ -139,7 +139,7 @@ client.on('message', async function(message) {
         }
     }
     const prefix = process.env["CLIENT_INVOKE"];
-    if(message.channel.type === 'text' && message.content.startsWith(prefix) && !message.member.user.bot && message.member.user.id !== client.user.id) {
+    if(message.content.startsWith(prefix) && !message.member.user.bot && message.member.user.id !== client.user.id) {
         const args = message.content.substr(prefix.length).split(" ");
         const invoke = args.shift().toLowerCase();
         

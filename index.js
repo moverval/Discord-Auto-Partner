@@ -536,7 +536,7 @@ const commandFunction = {
         }
     },
     log: function(message, invoke, args) {
-        const siteLength = 20;
+        const siteLength = 15;
         const logLines = fs.readFileSync("basic.log", 'utf-8').split('\n');
         const permissions = MAIN_GUILD.members.get(message.member.user.id).permissions;
         if(permissions.has('ADMINISTRATOR')) {

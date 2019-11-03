@@ -32,6 +32,7 @@
         "LOG_NO_PERMISSIONS": "Erlaubnis verweigert, sorry :(",
         "LOG_HELP": "Ein Protokoll für die Entwickler",
         "POTENTIAL_CHANNEL_FOUND_TITLE": "Potenziellen Kanal gefunden",
-        "POTENTIAL_CHANNEL_FOUND_DESCRIPTION": "Ich werde nun erklären, wie du das Setup abschließen kannst :)"
+        "POTENTIAL_CHANNEL_FOUND_DESCRIPTION": "Ich werde nun erklären, wie du das Setup abschließen kannst :)",
+        "MESSAGE_UPDATE": "Nachricht aktualisiert."
     }
 }

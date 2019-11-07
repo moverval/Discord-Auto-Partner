@@ -4,6 +4,9 @@ const fs = require('fs');
 const statusConfig = require('./status.json');
 const msg = require('./msg.json');
 
+const RENDER_ENABLED = process.env["RENDER_ENABLED"] ? true : false;
+let imgRender;
+
 const client = new Discord.Client({disableEveryone: true});
 const MINIMAL_MEMBER = parseInt(process.env["MAIN_GUILD_MINIMAL_MEMBERS_REQUIRED"]);
 const GUILD_NAME = process.env["MAIN_GUILD_NAME"];
@@ -22,6 +25,10 @@ const JsonVars = {
     CLIENT_INVOKE,
     GUILD_NAME_LOWER_CASE: GUILD_NAME.toLowerCase()
 };
+
+if(RENDER_ENABLED) {
+    imgRender = require('./render.js');
+}
 
 function addDebugMessage(...args) {
     if(DEBUG) 
@@ -394,9 +401,13 @@ function removePartnerById(guildId) {
     addDebugMessage("[PARTNER_MANAGER] Removing partner and objects");
     partnerInformation[guildId]["partner"] = false;
     const partnerChannel = MAIN_GUILD.channels.get(partnerInformation[guildId]["mainServerChannel"]["id"]);
-    partnerChannel.delete().then(function() {
-        addDebugMessage("[PARTNER_MANAGER] Partner channel removed");
-    });
+    if(partnerChannel) {
+        addDebugMessage("[PARTNER_MANAGER] Deleting partner channel");
+        partnerChannel.delete().then(function() {
+            addDebugMessage("[PARTNER_MANAGER] Partner channel removed");
+        });
+    }
+    else addDebugMessage("[PARTNER_MANAGER] Partner channel already removed");
     fs.writeFileSync('partners.json', JSON.stringify(partnerInformation, null, '\t'));
 }
 
@@ -536,7 +547,7 @@ const commandFunction = {
         }
     },
     log: function(message, invoke, args) {
-        const siteLength = 25;
+        const siteLength = 18;
         const logLines = fs.readFileSync("basic.log", 'utf-8').split('\n');
         const permissions = MAIN_GUILD.members.get(message.member.user.id).permissions;
         if(permissions.has('ADMINISTRATOR')) {

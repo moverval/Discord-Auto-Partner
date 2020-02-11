@@ -27,8 +27,6 @@ function getChannelRole(guild) {
 
     if(partnerInformation[guild.id] && partnerInformation[guild.id].versionId && !partnerInformation[guild.id].role.default)
         return partnerInformation[guild.id].role.id;
-
-    console.log(JSON.stringify(partnerInformation));
     
     return false;
 }

@@ -23,10 +23,12 @@ function setChannelRole(guild, role) {
 
 function getChannelRole(guild) {
     if(serverTempRoles[guild.id])
-        return serverTempRoles[guild.id];
+        return serverTempRoles[guild.id].id;
 
-    if(partnerInformation[guild.id] && partnerInformation[guild.id].versionId && partnerInformation[guild.id].role.default)
+    if(partnerInformation[guild.id] && partnerInformation[guild.id].versionId && !partnerInformation[guild.id].role.default)
         return partnerInformation[guild.id].role.id;
+
+    console.log(JSON.stringify(partnerInformation));
     
     return false;
 }
@@ -106,6 +108,7 @@ function registerCommands() {
     registerCommand("help", commandFunction.help, getUserMessage("HELP_HELP"));
     registerCommand("log", commandFunction.log, getUserMessage("LOG_HELP"));
     registerCommand("verify", commandFunction.verify, getUserMessage("ROLE_HELP"));
+    registerCommand("noverify", commandFunction.noverify, getUserMessage("NO_ROLE_HELP"));
 }
 
 function sendEmbed(channel, backupchannel, title, description, color) {
@@ -273,8 +276,8 @@ async function checkChannel(channel) {
     if(!role) {
         role = channel.guild.id;
     } else {
+        role = channel.guild.roles.get(role);
         if(role.members.array().length < MINIMAL_MEMBER) {
-            
             return ChannelExpression.ROLE_FEW_MEMBERS;
         }
     }
@@ -409,8 +412,7 @@ async function createPartner(channel) {
         type: 'text',
         parent: category
     });
-    let role = getChannelRole(channel.guild);
-    role = role.id;
+    const role = getChannelRole(channel.guild);
     partnerInformation[guild.id] = createPartnerInformation(channel, true, mGuildChannel, channel.messages.last(), role);
     fs.writeFileSync('partners.json', JSON.stringify(partnerInformation, null, '\t'));
     mGuildChannel.overwritePermissions(guild.owner.id, {
@@ -633,6 +635,13 @@ const commandFunction = {
             }
         } else {
             sendEmbed(message.channel, null, getUserMessage("ROLE_NOT_SET"), getUserMessage("ROLE_NOT_SET_DESCRIPTION"), 0xFF837F);
+        }
+    },
+    noverify: function(message, invoke, args) {
+        if(!isPartner(message.guild)) {
+            sendEmbed(message.channel, null, getUserMessage("NO_ROLE"), getUserMessage("NO_ROLE_DESCRIPTION"), 0xFFFF7F);
+        } else {
+            sendEmbed(message.channel, null, getUserMessage("ROLE_ALREADY_PARTNER"), getUserMessage("ROLE_ALREADY_PARTNER_DESCRIPTION"), 0xFF837F);
         }
     }
 };

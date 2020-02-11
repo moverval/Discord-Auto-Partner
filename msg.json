@@ -40,6 +40,9 @@
         "ROLE_NOT_SET_DESCRIPTION": "Dies ist nicht die Hauptrolle",
         "ROLE_ALREADY_PARTNER": "Bereits Partner",
         "ROLE_ALREADY_PARTNER_DESCRIPTION": "Der Server ist bereits gepartnert",
-        "ROLE_HELP": "Setze hiermit die Hauptrolle (Bypass für verify Systeme)"
+        "ROLE_HELP": "Setze hiermit die Hauptrolle (Bypass für verify Systeme)",
+        "NO_ROLE": "Verify Support enfernt",
+        "NO_ROLE_DESCRIPTION": "Ich richte mich nun wieder an die everyone rolle",
+        "NO_ROLE_HELP": "Entfernt den verify bypass wieder"
     }
 }

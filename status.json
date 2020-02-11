@@ -2,9 +2,11 @@
     "ChatExpression": {
         "NONE": "🎉 Partnerschaft abgeschlossen! Bei weiteren Anliegen, bitte ich dich einen Owner von DeineWerbung anzuschreiben! Danke für dein Verständnis und auf eine gute Partnerschaft!",
         "CHANNELNAME": "🚨 Bitte erstelle einen Channel mit dem Namen DeineWerbung. Nachdem du den Channel erstellt hast, werde ich dir mehr Infos senden",
-        "CHANNELPERMISSION_EVERYONE": "🚨 Bitte Schalte in unseren #DeineWerbung Kanal für **__alle Mitglieder__** (also @everyone) die 'Nachrichten versenden' aus und  'Nachrichten lesen' & 'Nachrichtenverlauf anzeigen' an.",
+        "CHANNELPERMISSION_EVERYONE": "🚨 Bitte Schalte in unseren #DeineWerbung Kanal für **__alle Mitglieder__** (also @everyone oder verify rolle) die 'Nachrichten versenden' aus und  'Nachrichten lesen' & 'Nachrichtenverlauf anzeigen' an.",
         "CHANNELPERMISSION_BOT": "🚨 Schalte in unseren #DeineWerbung Kanal für **__mich__** die 'Nachrichten versenden', 'Nachrichten lesen' & 'Nachrichtenverlauf anzeigen' an.",
         "CHANNEL_MESSAGE": "🎉 Meine Nachricht wurde in den Channel gesendet!",
-        "CHANNEL_FOREIGN_MESSAGE": "🚨 Bitte entferne immer alle anderen Nachrichten außer meine aus dem Channel"
+        "CHANNEL_FOREIGN_MESSAGE": "🚨 Bitte entferne immer alle anderen Nachrichten außer meine aus dem Channel",
+        "CHANNEL": "Problem mit Channel. Bitte lösche ihn und versuche es erneut",
+        "ROLE_FEW_MEMBERS": "Rolle hat zu wenig Mitglieder"
     }
 }

@@ -15,6 +15,21 @@ const PARTNER_CATEGORY = process.env["PARTNER_CATEGORY"];
 const CLIENT_INVOKE = process.env["CLIENT_INVOKE"];
 const PARTNER_MESSAGE = fs.readFileSync('partnerMessage.md', 'utf-8');
 const DEBUG = false;
+const serverTempRoles = {};
+
+function setChannelRole(guild, role) {
+    serverTempRoles[guild.id] = role;
+}
+
+function getChannelRole(guild) {
+    if(serverTempRoles[guild.id])
+        return serverTempRoles[guild.id];
+
+    if(partnerInformation[guild.id] && partnerInformation[guild.id].versionId && partnerInformation[guild.id].role.default)
+        return partnerInformation[guild.id].role.id;
+    
+    return false;
+}
 
 const JsonVars = {
     MINIMAL_MEMBER,
@@ -90,6 +105,7 @@ function registerCommands() {
     registerCommand("eval", commandFunction.eval, getUserMessage("EVAL_HELP"));
     registerCommand("help", commandFunction.help, getUserMessage("HELP_HELP"));
     registerCommand("log", commandFunction.log, getUserMessage("LOG_HELP"));
+    registerCommand("verify", commandFunction.verify, getUserMessage("ROLE_HELP"));
 }
 
 function sendEmbed(channel, backupchannel, title, description, color) {
@@ -167,7 +183,7 @@ client.on('message', async function(message) {
     }
 });
 
-function createPartnerInformation(channel, partnered, mainServerChannel, partnerMessage) {
+function createPartnerInformation(channel, partnered, mainServerChannel, partnerMessage, role=null) {
     return {
         channel: {
             id: channel.id,
@@ -185,12 +201,17 @@ function createPartnerInformation(channel, partnered, mainServerChannel, partner
             id: partnerMessage.id,
             lastUpdate: new Date()
         },
+        role: {
+            default: role ? false : true,
+            id: role
+        },
         partnershipRecorded: new Date(),
         channelId: channel.id,
         partner: partnered,
         channelName: channel.name,
         name: channel.guild.name,
-        saveVersion: 'v0.0.1'
+        saveVersion: 'v0.0.1',
+        versionId: 2
     };
 }
 
@@ -236,7 +257,8 @@ const ChannelExpression = {
     CHANNELPERMISSION_BOT: 1 << 2,
     CHANNEL_MESSAGE: 1 << 3,
     CHANNEL: 1 << 4,
-    CHANNEL_FOREIGN_MESSAGE: 1 << 5
+    CHANNEL_FOREIGN_MESSAGE: 1 << 5,
+    ROLE_FEW_MEMBERS: 1 << 6
 };
 
 /**
@@ -244,10 +266,22 @@ const ChannelExpression = {
  * @returns {boolean}
  */
 async function checkChannel(channel) {
+    /**
+     * @type {Role}
+     */
+    let role = getChannelRole(channel.guild);
+    if(!role) {
+        role = channel.guild.id;
+    } else {
+        if(role.members.array().length < MINIMAL_MEMBER) {
+            
+            return ChannelExpression.ROLE_FEW_MEMBERS;
+        }
+    }
     addDebugMessage("[CHANNEL_CHECK] Checking channel " + channel.name);
     let rt = 0;
     if(channel.name.indexOf(GUILD_NAME.toLowerCase()) !== -1) {
-        const permissions = channel.permissionsFor(channel.guild.id);
+        const permissions = channel.permissionsFor(role);
         const botPermissions = channel.permissionsFor(client.user);
         if(permissions && permissions.has('READ_MESSAGES') && permissions.has('READ_MESSAGE_HISTORY') && !permissions.has('SEND_MESSAGES')) {
             if(botPermissions && botPermissions.has('SEND_MESSAGES') && botPermissions.has('READ_MESSAGES')) {
@@ -375,7 +409,9 @@ async function createPartner(channel) {
         type: 'text',
         parent: category
     });
-    partnerInformation[guild.id] = createPartnerInformation(channel, true, mGuildChannel, channel.messages.last());
+    let role = getChannelRole(channel.guild);
+    role = role.id;
+    partnerInformation[guild.id] = createPartnerInformation(channel, true, mGuildChannel, channel.messages.last(), role);
     fs.writeFileSync('partners.json', JSON.stringify(partnerInformation, null, '\t'));
     mGuildChannel.overwritePermissions(guild.owner.id, {
         SEND_MESSAGES: true,
@@ -477,6 +513,23 @@ async function checkPartnerServersValid() {
     }
 }
 
+client.on('roleDelete', function(role) {
+    if(isPartner(role.guild)) {
+        if(partnerInformation[role.guild.id].versionId) {
+            if(partnerInformation[role.guild.id].role.id === role.id) {
+                removePartner(role.guild);
+            }
+        }
+    }
+});
+
+client.on('roleUpdate', function(role) {
+    if(role.members.size < MINIMAL_MEMBER)
+    {
+        removePartner(role.guild);
+    }
+});
+
 function createLogEmbed(channel, log, site, siteMax, fileSize) {
     const embed = new Discord.RichEmbed();
     embed.setTitle("Log")
@@ -567,6 +620,19 @@ const commandFunction = {
         }
         else {
             sendEmbed(message.channel, null, "Log", getUserMessage("LOG_NO_PERMISSIONS"), 0xda746a);
+        }
+    },
+    verify: function(message, invoke, args) {
+        const role = message.mentions.roles.array()[0];
+        if(role && message.mentions.roles.array()[0].members.array().length >= MINIMAL_MEMBER) {
+            if(!isPartner(message.guild)) {
+                setChannelRole(message.guild, role);
+                sendEmbed(message.channel, null, getUserMessage("ROLE_SET"), getUserMessage("ROLE_SET_DESCRIPTION"), 0xFFFF7F);
+            } else {
+                sendEmbed(message.channel, null, getUserMessage("ROLE_ALREADY_PARTNER"), getUserMessage("ROLE_ALREADY_PARTNER_DESCRIPTION"), 0xFF837F);
+            }
+        } else {
+            sendEmbed(message.channel, null, getUserMessage("ROLE_NOT_SET"), getUserMessage("ROLE_NOT_SET_DESCRIPTION"), 0xFF837F);
         }
     }
 };

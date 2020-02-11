@@ -33,6 +33,13 @@
         "LOG_HELP": "Ein Protokoll für die Entwickler",
         "POTENTIAL_CHANNEL_FOUND_TITLE": "Potenziellen Kanal gefunden",
         "POTENTIAL_CHANNEL_FOUND_DESCRIPTION": "Ich werde nun erklären, wie du das Setup abschließen kannst :)",
-        "MESSAGE_UPDATED": "Nachricht aktualisiert."
+        "MESSAGE_UPDATED": "Nachricht aktualisiert.",
+        "ROLE_SET": "Die Rolle wurde aktualisiert.",
+        "ROLE_SET_DESCRIPTION": "Diese Rolle wird jetzt für die Verifizierung genutzt",
+        "ROLE_NOT_SET": "Rolle nicht gesetzt",
+        "ROLE_NOT_SET_DESCRIPTION": "Dies ist nicht die Hauptrolle",
+        "ROLE_ALREADY_PARTNER": "Bereits Partner",
+        "ROLE_ALREADY_PARTNER_DESCRIPTION": "Der Server ist bereits gepartnert",
+        "ROLE_HELP": "Setze hiermit die Hauptrolle (Bypass für verify Systeme)"
     }
 }

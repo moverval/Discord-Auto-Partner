@@ -1,12 +1,12 @@
 {
     "ChatExpression": {
-        "NONE": "🎉 Partnerschaft abgeschlossen! Bei weiteren Anliegen, bitte ich dich einen Owner von DeineWerbung anzuschreiben! Danke für dein Verständnis und auf eine gute Partnerschaft!",
-        "CHANNELNAME": "🚨 Bitte erstelle einen Channel mit dem Namen DeineWerbung. Nachdem du den Channel erstellt hast, werde ich dir mehr Infos senden",
-        "CHANNELPERMISSION_EVERYONE": "🚨 Bitte Schalte in unseren #DeineWerbung Kanal für **__alle Mitglieder__** (also @everyone oder verify rolle) die 'Nachrichten versenden' aus und  'Nachrichten lesen' & 'Nachrichtenverlauf anzeigen' an.",
-        "CHANNELPERMISSION_BOT": "🚨 Schalte in unseren #DeineWerbung Kanal für **__mich__** die 'Nachrichten versenden', 'Nachrichten lesen' & 'Nachrichtenverlauf anzeigen' an.",
-        "CHANNEL_MESSAGE": "🎉 Meine Nachricht wurde in den Channel gesendet!",
-        "CHANNEL_FOREIGN_MESSAGE": "🚨 Bitte entferne immer alle anderen Nachrichten außer meine aus dem Channel",
-        "CHANNEL": "Problem mit Channel. Bitte lösche ihn und versuche es erneut",
-        "ROLE_FEW_MEMBERS": "Rolle hat zu wenig Mitglieder"
+        "NONE": "🎉 **Partnerschaft abgeschlossen!** Bei weiteren Anliegen, bitte ich dich einen Owner von DeineWerbung anzuschreiben! Danke für dein Verständnis und auf eine gute Partnerschaft!\n\nEmpfehlung: Probiere mal die Funktion ``++boost`` auf deinem Server aus. Sie ermöglicht dir deinen Link in unsere Partnerschaftsnachricht zu bringen und schiebt zeitgleich auch noch deinen Kanal an den Anfang der Partnerschaftskanäle (Aufpassen, diese Funktion ist nur jede 10 Stunden möglich!)",
+        "CHANNELNAME": "🚨 Bitte **erstelle einen Channel mit dem Namen ``deinewerbung``**. Nach der Erstellung sende ich dir die nächste Info",
+        "CHANNELPERMISSION_EVERYONE": "🚨 Bitte schalte in dem #deinewerbung Kanal für **__alle Mitglieder__** (also @everyone oder verify rolle) die ``Nachrichten versenden`` Berechtigung **aus** und ``Nachrichten lesen`` **&** ``Nachrichtenverlauf anzeigen`` Berechtigung **an**.",
+        "CHANNELPERMISSION_BOT": "🚨 Bitte schalte in dem #deinewerbung Kanal für **__mich__** die ``Nachrichten versenden``, ``Nachrichten lesen`` **&** ``Nachrichtenverlauf anzeigen`` Berechtigung **an** damit ich jederzeit auf den Kanal zugreifen kann.",
+        "CHANNEL_MESSAGE": "🎉 Partnerschaftsnachricht wurde in den Channel gesendet!",
+        "CHANNEL_FOREIGN_MESSAGE": "🚨 Bitte **lösche alle Nachrichten außer meine** aus dem Channel. Passe auch darauf auf, dass hier niemand anderes außer ich hineinschreiben kann.",
+        "CHANNEL": "🚨 Der Channel ist ungültig. Bitte **lösche den Channel und erstelle ihn erneut**.",
+        "ROLE_FEW_MEMBERS": "🚨 Die Rolle die du ausgewählt hast **scheint nicht die Hauptrolle zu sein**. Bitte überprüfe deine Angaben und kontaktiere einen Administrator falls es doch deine Hauptrolle ist."
     }
 }

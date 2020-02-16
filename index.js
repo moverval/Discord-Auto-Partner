@@ -4,6 +4,9 @@ const fs = require('fs');
 const statusConfig = require('./status.json');
 const msg = require('./msg.json');
 
+const RENDER_ENABLED = process.env["RENDER_ENABLED"] ? true : false;
+let imgRender;
+
 const client = new Discord.Client({disableEveryone: true});
 const MINIMAL_MEMBER = parseInt(process.env["MAIN_GUILD_MINIMAL_MEMBERS_REQUIRED"]);
 const GUILD_NAME = process.env["MAIN_GUILD_NAME"];
@@ -11,7 +14,29 @@ const GUILD_ID = process.env["MAIN_GUILD"];
 const PARTNER_CATEGORY = process.env["PARTNER_CATEGORY"];
 const CLIENT_INVOKE = process.env["CLIENT_INVOKE"];
 const PARTNER_MESSAGE = fs.readFileSync('partnerMessage.md', 'utf-8');
-const DEBUG = true;
+const COMMAND_BOOST_ENABLED = process.env["COMMAND_BOOST"];
+const CLIENT_INVITE = process.env["CLIENT_INVITE"];
+const DEBUG = false;
+const serverTempRoles = {};
+
+function setChannelRole(guild, role) {
+    serverTempRoles[guild.id] = role;
+}
+
+function removeChannelRole(guild) {
+    partnerInformation[guild.id]["role"]["default"] = true;
+    savePartnerInformation();
+}
+
+function getChannelRole(guild) {
+    if(serverTempRoles[guild.id])
+        return serverTempRoles[guild.id].id;
+
+    if(partnerInformation[guild.id] && partnerInformation[guild.id].versionId && !partnerInformation[guild.id].role.default)
+        return partnerInformation[guild.id].role.id;
+    
+    return false;
+}
 
 const JsonVars = {
     MINIMAL_MEMBER,
@@ -20,8 +45,13 @@ const JsonVars = {
     PARTNER_CATEGORY,
     PARTNER_MESSAGE,
     CLIENT_INVOKE,
+    CLIENT_INVITE,
     GUILD_NAME_LOWER_CASE: GUILD_NAME.toLowerCase()
 };
+
+if(RENDER_ENABLED) {
+    imgRender = require('./render.js');
+}
 
 function addDebugMessage(...args) {
     if(DEBUG) 
@@ -29,9 +59,13 @@ function addDebugMessage(...args) {
     fs.appendFileSync("basic.log", args.join(" ") + "\n");
 };
 
-function replaceStringVar(string) {
+function savePartnerInformation() {
+    fs.writeFileSync('partners.json', JSON.stringify(partnerInformation, null, '\t'));
+}
+
+function replaceStringVar(string, local=null) {
     return string.replace(/%([\w_]+)%/g, function(match, g1) {
-        return JsonVars[g1];
+        return JsonVars[g1] || local[g1];
     });
 }
 
@@ -39,8 +73,8 @@ function getConsoleMessage(str) {
     return replaceStringVar(msg["ConsoleMessage"][str]);
 }
 
-function getUserMessage(str) {
-    return replaceStringVar(msg["UserMessage"][str]);
+function getUserMessage(str, local=null) {
+    return replaceStringVar(msg["UserMessage"][str], local);
 }
 
 /**
@@ -80,8 +114,13 @@ function registerCommand(command, func, help="") {
 
 function registerCommands() {
     registerCommand("partnership", commandFunction.partnership, getUserMessage("PARTNERSHIP_HELP"));
-    registerCommand("eval", commandFunction.eval, getUserMessage("EVAL_HELP"));
+    if(COMMAND_BOOST_ENABLED) {
+        registerCommand("boost", require("./commands/boost").command, getUserMessage("COMMAND_BOOST_HELP"));
+    }
+    registerCommand("verify", commandFunction.verify, getUserMessage("ROLE_HELP"));
+    registerCommand("noverify", commandFunction.noverify, getUserMessage("NO_ROLE_HELP"));
     registerCommand("help", commandFunction.help, getUserMessage("HELP_HELP"));
+    registerCommand("eval", commandFunction.eval, getUserMessage("EVAL_HELP"));
     registerCommand("log", commandFunction.log, getUserMessage("LOG_HELP"));
 }
 
@@ -94,7 +133,7 @@ function sendEmbed(channel, backupchannel, title, description, color) {
 }
 
 function sendNotifyMessage(channel, backupchannel, description) {
-    sendEmbed(channel, backupchannel, "Note", description, 0xffe675);
+    sendEmbed(channel, backupchannel, getUserMessage("NOTE_TITLE"), description, 0x74766C);
 }
 
 client.on('messageDelete', async function(message) {
@@ -146,7 +185,7 @@ client.on('message', async function(message) {
         addDebugMessage("[COMMAND_HANDLER] Got a command: " + message.content);
         if(commandMap[invoke]) {
             try {
-                const result = await commandMap[invoke]["callee"](message, invoke, args);
+                const result = await commandMap[invoke]["callee"](message, invoke, args, cmdEnv);
                 if(typeof result === 'boolean') {
                     addDebugMessage("[COMMAND_HANDLER] Command '" + invoke + "' did not execute correctly.");
                 }
@@ -160,7 +199,7 @@ client.on('message', async function(message) {
     }
 });
 
-function createPartnerInformation(channel, partnered, mainServerChannel, partnerMessage) {
+function createPartnerInformation(channel, partnered, mainServerChannel, partnerMessage, role=null) {
     return {
         channel: {
             id: channel.id,
@@ -178,12 +217,17 @@ function createPartnerInformation(channel, partnered, mainServerChannel, partner
             id: partnerMessage.id,
             lastUpdate: new Date()
         },
+        role: {
+            default: role ? false : true,
+            id: role
+        },
         partnershipRecorded: new Date(),
         channelId: channel.id,
         partner: partnered,
         channelName: channel.name,
         name: channel.guild.name,
-        saveVersion: 'v0.0.1'
+        saveVersion: 'v0.0.1',
+        versionId: 2
     };
 }
 
@@ -229,7 +273,8 @@ const ChannelExpression = {
     CHANNELPERMISSION_BOT: 1 << 2,
     CHANNEL_MESSAGE: 1 << 3,
     CHANNEL: 1 << 4,
-    CHANNEL_FOREIGN_MESSAGE: 1 << 5
+    CHANNEL_FOREIGN_MESSAGE: 1 << 5,
+    ROLE_FEW_MEMBERS: 1 << 6
 };
 
 /**
@@ -237,10 +282,22 @@ const ChannelExpression = {
  * @returns {boolean}
  */
 async function checkChannel(channel) {
-    addDebugMessage("[CHANNEL_CHECK] Checking channel " + channel.name);
+    /**
+     * @type {Role}
+     */
+    let role = getChannelRole(channel.guild);
+    if(!role) {
+        role = channel.guild.id;
+    } else {
+        role = channel.guild.roles.get(role);
+        if(!role) removeChannelRole(channel.guild);
+        else if(role.members.size < MINIMAL_MEMBER || role.members.size / channel.guild.members.size < 0.5) {
+            return ChannelExpression.ROLE_FEW_MEMBERS;
+        }
+    }
     let rt = 0;
     if(channel.name.indexOf(GUILD_NAME.toLowerCase()) !== -1) {
-        const permissions = channel.permissionsFor(channel.guild.id);
+        const permissions = channel.permissionsFor(role);
         const botPermissions = channel.permissionsFor(client.user);
         if(permissions && permissions.has('READ_MESSAGES') && permissions.has('READ_MESSAGE_HISTORY') && !permissions.has('SEND_MESSAGES')) {
             if(botPermissions && botPermissions.has('SEND_MESSAGES') && botPermissions.has('READ_MESSAGES')) {
@@ -323,8 +380,15 @@ client.on('channelUpdate', async function(channelOld, channelNew) {
     }
 });
 
-async function sendPartnerMessage(channel) {
-    await channel.send(PARTNER_MESSAGE).catch();
+function createPartnerEmbed(partnerMessage) {
+    const embed = new Discord.RichEmbed();
+    embed.setTitle(GUILD_NAME).setDescription(partnerMessage).setFooter(getUserMessage("PARTNER_MESSAGE_FOOTER"), MAIN_GUILD.iconURL).setColor(0x202225).setThumbnail(MAIN_GUILD.iconURL);
+    return embed;
+}
+
+async function sendPartnerMessage(channel, content=null) {
+    if(!content) content = createPartnerEmbed(PARTNER_MESSAGE);
+    await channel.send(content).catch();
 }
 
 client.on('channelDelete', function(channel) {
@@ -368,8 +432,9 @@ async function createPartner(channel) {
         type: 'text',
         parent: category
     });
-    partnerInformation[guild.id] = createPartnerInformation(channel, true, mGuildChannel, channel.messages.last());
-    fs.writeFileSync('partners.json', JSON.stringify(partnerInformation, null, '\t'));
+    const role = getChannelRole(channel.guild);
+    partnerInformation[guild.id] = createPartnerInformation(channel, true, mGuildChannel, channel.messages.last(), role);
+    savePartnerInformation();
     mGuildChannel.overwritePermissions(guild.owner.id, {
         SEND_MESSAGES: true,
         MANAGE_MESSAGES: true,
@@ -394,9 +459,13 @@ function removePartnerById(guildId) {
     addDebugMessage("[PARTNER_MANAGER] Removing partner and objects");
     partnerInformation[guildId]["partner"] = false;
     const partnerChannel = MAIN_GUILD.channels.get(partnerInformation[guildId]["mainServerChannel"]["id"]);
-    partnerChannel.delete().then(function() {
-        addDebugMessage("[PARTNER_MANAGER] Partner channel removed");
-    });
+    if(partnerChannel) {
+        addDebugMessage("[PARTNER_MANAGER] Deleting partner channel");
+        partnerChannel.delete().then(function() {
+            addDebugMessage("[PARTNER_MANAGER] Partner channel removed");
+        });
+    }
+    else addDebugMessage("[PARTNER_MANAGER] Partner channel already removed");
     fs.writeFileSync('partners.json', JSON.stringify(partnerInformation, null, '\t'));
 }
 
@@ -434,6 +503,28 @@ function checkGuild(guild) {
     });
 }
 
+/**
+ * @param {Discord.Guild} guild 
+ * @param {*} attachment 
+ */
+async function editPartnerMessage(guild, content=null) {
+    //client.guilds.array()[0].fetchInvites().then(guildInvites => {
+        
+    //}); TODO make invite function for ++boost
+    if(!content) content = createPartnerEmbed(PARTNER_MESSAGE);
+
+    if(!isPartner(guild)) {
+        return false;
+    }
+
+    const channelId = partnerInformation[guild.id]["channel"]["id"];
+    const messageId = partnerInformation[guild.id]["partnerMessage"]["id"];
+    
+    await guild.channels.get(channelId).messages.get(messageId).edit(content).catch((error) => console.log("Error while editing Partner message" + error));
+
+    return true;
+}
+
 async function checkPartnerServersValid() {
     for(const pGuildId in partnerInformation) {
         addDebugMessage("[PARTNER_CHECK] Checking potential partner " + pGuildId);
@@ -448,7 +539,7 @@ async function checkPartnerServersValid() {
                     addDebugMessage("[PARTNER_CHECK] Partner " + pGuildId + "not valid. Partnership removed");
                 }
                 else {
-                    information.channel.messages.get(guildPartnerInformation["partnerMessage"]["id"]).edit(PARTNER_MESSAGE);
+                    editPartnerMessage(guild);
                     addDebugMessage("[PARTNER_CHECK] Updating partner message on server " + pGuildId);
                     if(information.channel.id !== guildPartnerInformation["channel"]["id"]) {
                         addDebugMessage("[PARTNER_CHECK] Channel has changed. Updating partners.json");
@@ -466,27 +557,35 @@ async function checkPartnerServersValid() {
     }
 }
 
-function createLogEmbed(channel, log, site, siteMax) {
+client.on('roleDelete', function(role) {
+    if(isPartner(role.guild)) {
+        if(partnerInformation[role.guild.id].versionId) {
+            if(partnerInformation[role.guild.id].role.id === role.id) {
+                removePartner(role.guild);
+            }
+        }
+    }
+});
+
+client.on('roleUpdate', function(role) {
+    if(role.members.size < MINIMAL_MEMBER)
+    {
+        removePartner(role.guild);
+    }
+});
+
+function createLogEmbed(channel, log, site, siteMax, fileSize) {
     const embed = new Discord.RichEmbed();
     embed.setTitle("Log")
     .setColor(0xda746a)
     .setDescription(log)
-    .setFooter(site + " / " + siteMax);
+    .setFooter(site + " / " + siteMax + "    " + fileSize);
     channel.send(embed);
 }
 
 const commandFunction = {
     partnership: function(message, invoke, args) {
-        try {
-            const embed = new Discord.RichEmbed();
-            embed.setColor(0xa4da6a)
-            .setTitle("Please invite me to your server")
-            .setDescription(process.env["CLIENT_INVITE"])
-            .setFooter("For our safety");
-            message.member.user.send(embed).catch(() => message.channel.send("Please enable direct messages on this server"));
-        } catch(err) {
-            message.channel.send("Please enable direct messages for this server").catch();
-        }
+        sendEmbed(message.member.user, message.channel, getUserMessage("PARTNERSHIP_INVITE_MESSAGE"), getUserMessage("PARTNERSHIP_INVITE_MESSAGE_DESCRIPTION"), 0x74766C);
     },
     eval: function(message, invoke, args) {
         const permissions = MAIN_GUILD.members.get(message.member.user.id).permissions;
@@ -536,7 +635,7 @@ const commandFunction = {
         }
     },
     log: function(message, invoke, args) {
-        const siteLength = 15;
+        const siteLength = 18;
         const logLines = fs.readFileSync("basic.log", 'utf-8').split('\n');
         const permissions = MAIN_GUILD.members.get(message.member.user.id).permissions;
         if(permissions.has('ADMINISTRATOR')) {
@@ -544,18 +643,63 @@ const commandFunction = {
                 const site = parseInt(args[0]);
                 if(site > 0 && logLines.length > (site - 1) * siteLength + 1) {
                     const point = (site - 1) * siteLength;
-                    createLogEmbed(message.channel, logLines.slice(point, point + siteLength).join('\n'), site, Math.ceil(logLines.length / siteLength));
+                    createLogEmbed(message.channel, logLines.slice(point, point + siteLength).join('\n'), site, Math.ceil(logLines.length / siteLength), Math.round(fs.statSync('basic.log').size / 1000) +  "kb");
                 }
                 else {
                     sendEmbed(message.channel, null, "Log", getUserMessage("LOG_SITE_NOT_EXISTS"), 0xda746a);
                 }
             }
             else {
-                createLogEmbed(message.channel, logLines.slice(0, siteLength).join('\n'), 1, Math.ceil(logLines.length / siteLength));
+                createLogEmbed(message.channel, logLines.slice(0, siteLength).join('\n'), 1, Math.ceil(logLines.length / siteLength), Math.round(fs.statSync('basic.log').size / 1000) +  "kb");
             }
         }
         else {
             sendEmbed(message.channel, null, "Log", getUserMessage("LOG_NO_PERMISSIONS"), 0xda746a);
         }
+    },
+    verify: function(message, invoke, args) {
+        const role = message.mentions.roles.array()[0];
+        if(message.channel.guild.id === MAIN_GUILD.id) return;
+        if(!role) {
+            sendEmbed(message.channel, null, getUserMessage("ROLE_NO_ROLE_GIVEN"), getUserMessage("ROLE_NO_ROLE_GIVEN_DESCRIPTION"), 0xFF837F);
+            return;
+        }
+        if(role && message.mentions.roles.array()[0].members.array().length >= MINIMAL_MEMBER && role.members.size / message.channel.guild.members.size >= 0.5) {
+            if(!isPartner(message.guild)) {
+                setChannelRole(message.guild, role);
+                sendEmbed(message.channel, null, getUserMessage("ROLE_SET"), getUserMessage("ROLE_SET_DESCRIPTION"), 0xFFFF7F);
+            } else {
+                sendEmbed(message.channel, null, getUserMessage("ROLE_ALREADY_PARTNER"), getUserMessage("ROLE_ALREADY_PARTNER_DESCRIPTION"), 0xFF837F);
+            }
+        } else {
+            sendEmbed(message.channel, null, getUserMessage("ROLE_NOT_SET"), getUserMessage("ROLE_NOT_SET_DESCRIPTION"), 0xFF837F);
+        }
+    },
+    noverify: function(message, invoke, args) {
+        if(!isPartner(message.guild)) {
+            sendEmbed(message.channel, null, getUserMessage("NO_ROLE"), getUserMessage("NO_ROLE_DESCRIPTION"), 0xFFFF7F);
+        } else {
+            sendEmbed(message.channel, null, getUserMessage("ROLE_ALREADY_PARTNER"), getUserMessage("ROLE_ALREADY_PARTNER_DESCRIPTION"), 0xFF837F);
+        }
     }
+};
+
+/**
+ * @param {Discord.Guild} guild 
+ */
+async function getInvite(guild) { // TODO Create invite
+    let channel = guild.systemChannel;
+    if(!channel.permissionsFor(client.user).has('CREATE_INSTANT_INVITE')) {
+        channel = guild.channels.find(channel => channel.permissionsFor(client.user).has('CREATE_INSTANT_INVITE'));
+        if(!channel) return false;
+    }
+    return await channel.createInvite({unique: false, maxAge: 0, maxUses: 0});
+}
+
+const cmdEnv = {
+    isPartner, MAIN_GUILD, editPartnerMessage, removePartnerById, sendEmbed, getUserMessage, client,
+    createPartnerEmbed, getInvite, savePartnerInformation,
+    getPartnerInformation: () => partnerInformation,
+    getMainGuild: () => MAIN_GUILD,
+    getPartnerMessage: () => PARTNER_MESSAGE
 };

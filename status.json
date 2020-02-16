@@ -1,10 +1,12 @@
 {
     "ChatExpression": {
-        "NONE": "Partner channel created. Thanks for partnering. For further requests please contact us on our server.",
-        "CHANNELNAME": "Please create a channel with our servers name. After this step I'll say tell your further details",
-        "CHANNELPERMISSION_EVERYONE": "The channel is not properly setuped. Now you need to set the right permissions to the channel",
-        "CHANNELPERMISSION_BOT": "I cannot write in this channel. I need permissions that I can send messages into it",
-        "CHANNEL_MESSAGE": "Sending message into partner channel...",
-        "CHANNEL_FOREIGN_MESSAGE": "Please remove all messages out of that channel"
+        "NONE": "🎉 **Partnership finished!**",
+        "CHANNELNAME": "🚨 Please **create a channel named ``deinewerbung``**",
+        "CHANNELPERMISSION_EVERYONE": "🚨 Please trigger the permissions in the channel for **__all members__** (@everyone or verify role) the ``send messages`` permission to **off** and ``read messages`` **&** ``show message progress`` permision to **on**.",
+        "CHANNELPERMISSION_BOT": "🚨 Please trigger the permissions in the channel for **__me__** the ``send messages``, ``read messages`` **&** ``show message progress`` permission to **an** that I can use the channel.",
+        "CHANNEL_MESSAGE": "🎉 Message was sent into the channel!",
+        "CHANNEL_FOREIGN_MESSAGE": "🚨 Please **delete all messages except mine** from the channel.",
+        "CHANNEL": "🚨 The channel is invalid. Please **delete the channel and recreate it**.",
+        "ROLE_FEW_MEMBERS": "🚨 The role that you have selected **does not seem to be the main role**."
     }
 }

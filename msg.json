@@ -63,6 +63,13 @@
         "COMMAND_BOOST_SELF_BOOST": "Self Boost nicht möglich",
         "COMMAND_BOOST_SELF_BOOST_DESCRIPTION": "Danke für den Boost aber für uns selbst ist dieser leider wirkungslos 😅",
         "PARTNERSHIP_INVITE_MESSAGE": "Bitte lade mich auf deinen Server ein",
-        "PARTNERSHIP_INVITE_MESSAGE_DESCRIPTION": "Ich brauche keine Rechte und handle wie ein normaler Nutzer (und stehe auf offline um nicht in deiner Nutzerliste aufzutauchen). Ich muss joinen damit die Partnerschaftsnachricht aktualisiert wird, du als Partner die Features erhalten kannst und die Partnerschaft sichergestellt wird.\n\n**[Klicke hier wenn du bereit bist mich einzuladen :)](%CLIENT_INVITE%)**\n\n[Klicke hier um ein Feedback über mich abzugeben](https://forms.gle/aacBAnwaNxdc4eyu9)"
+        "PARTNERSHIP_INVITE_MESSAGE_DESCRIPTION": "Ich brauche keine Rechte und handle wie ein normaler Nutzer (und stehe auf offline um nicht in deiner Nutzerliste aufzutauchen). Ich muss joinen damit die Partnerschaftsnachricht aktualisiert wird, du als Partner die Features erhalten kannst und die Partnerschaft sichergestellt wird.\n\n**[Klicke hier wenn du bereit bist mich einzuladen :)](%CLIENT_INVITE%)**\n\n[Klicke hier um ein Feedback über mich abzugeben](https://forms.gle/aacBAnwaNxdc4eyu9)",
+        "STATUS_UPDATED": "Status aktualisiert",
+        "STATUS_UPDATED_DESCRIPTION": "Status aktualisiert. Dieser Server ist nun Partner",
+        "STATUS_PARTNER": "Du bist ein Partner",
+        "STATUS_PARTNER_DESCRIPTION": "Du hast alles erfolgreich konfiguriert und wurdest bei uns als Partner aufgenommen :smiley:",
+        "STATUS_ONLY_OWNER": "Sorry",
+        "STATUS_ONLY_OWNER_DESCRIPTION": "Diesen Befehl kann nur der Serverinhaber nutzen",
+        "STATUS_HELP": "Ein Tool um zu überprüfen ob man Partner ist oder nicht"
     }
 }

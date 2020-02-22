@@ -119,6 +119,7 @@ function registerCommands() {
     }
     registerCommand("verify", commandFunction.verify, getUserMessage("ROLE_HELP"));
     registerCommand("noverify", commandFunction.noverify, getUserMessage("NO_ROLE_HELP"));
+    registerCommand("status", commandFunction.status, getUserMessage("STATUS_HELP"));
     registerCommand("help", commandFunction.help, getUserMessage("HELP_HELP"));
     registerCommand("eval", commandFunction.eval, getUserMessage("EVAL_HELP"));
     registerCommand("log", commandFunction.log, getUserMessage("LOG_HELP"));
@@ -680,6 +681,23 @@ const commandFunction = {
             sendEmbed(message.channel, null, getUserMessage("NO_ROLE"), getUserMessage("NO_ROLE_DESCRIPTION"), 0xFFFF7F);
         } else {
             sendEmbed(message.channel, null, getUserMessage("ROLE_ALREADY_PARTNER"), getUserMessage("ROLE_ALREADY_PARTNER_DESCRIPTION"), 0xFF837F);
+        }
+    },
+    status: async function(message, invoke, args) {
+        if(message.member.user.id === message.guild.owner.id) {
+            const guildStatus = await checkGuild(message.guild);
+            if(guildStatus.isPartner) {
+                if(!isPartner(message.guild)) {
+                    createPartner(guildStatus.channel);
+                    sendEmbed(message.member.user, null, getUserMessage("STATUS_UPDATED"), getUserMessage("STATUS_UPDATED_DESCRIPTION"), 0xFFFF7F);
+                } else {
+                    sendEmbed(message.member.user, null, getUserMessage("STATUS_PARTNER"), getUserMessage("STATUS_PARTNER_DESCRIPTION"), 0xFFFF7F);
+                }
+            } else {
+                sendNotifyMessage(message.member.user, null, getChatExpressionStatus(guildStatus.flags));
+            }
+        } else {
+            sendEmbed(message.member.user, null, getUserMessage("STATUS_ONLY_OWNER"), getUserMessage("STATUS_ONLY_OWNER_DESCRIPTION"), 0xFF837F);
         }
     }
 };

@@ -4,7 +4,10 @@
         "BOT_UNDEFINED_MAIN_SERVER": "Bot ist nicht auf den Main Server. Bitte lade ihn ein und dann starte die Application neu!",
         "BOT_SERVERS_CHECK_STARTUP_COMPLETE": "Server synchronisiert",
         "MESSAGE_NOT_SENT": "Message konnte nicht gesendet werden",
-        "SERVER_LEFT_MEMBER_MISSING": "Server verlassen. (Zu wenige Member)"
+        "SERVER_LEFT_MEMBER_MISSING": "Server verlassen. (Zu wenige Member)",
+        "FEATURE_BROADCAST_REGISTERED": "Broadcast wurde registriert.",
+        "PARTNER_MESSAGE_ID_UPDATED": "Eine neuere Partnerschaftsnachricht ist verfügbar. Die Information wurde aktualisiert.",
+        "CHECK_GUILD": "Überprüfe '%CURRENT_GUILD_NAME%' (%CURRENT_GUILD_ID%)"
     },
     "UserMessage": {
         "NOTE_TITLE": "Benachrichtigung",
@@ -70,6 +73,7 @@
         "STATUS_PARTNER_DESCRIPTION": "Du hast alles erfolgreich konfiguriert und wurdest bei uns als Partner aufgenommen :smiley:",
         "STATUS_ONLY_OWNER": "Sorry",
         "STATUS_ONLY_OWNER_DESCRIPTION": "Diesen Befehl kann nur der Serverinhaber nutzen",
-        "STATUS_HELP": "Ein Tool um zu überprüfen ob man Partner ist oder nicht"
+        "STATUS_HELP": "Ein Tool um zu überprüfen ob man Partner ist oder nicht",
+        "FEATURE_BROADCAST_MESSAGE": "**Erhalte deinen eigenen Werbe channel für deinen Discord** auf %GUILD_NAME% mit einer Partnerschaft! Nutze ``++partnership`` um deine Partnerschaft zu beantragen!"
     }
 }

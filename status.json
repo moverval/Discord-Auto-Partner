@@ -7,6 +7,7 @@
         "CHANNEL_MESSAGE": "🎉 Partnerschaftsnachricht wurde in den Channel gesendet!",
         "CHANNEL_FOREIGN_MESSAGE": "🚨 Bitte **lösche alle Nachrichten außer meine** aus dem Channel. Passe auch darauf auf, dass hier niemand anderes außer ich hineinschreiben kann.",
         "CHANNEL": "🚨 Der Channel ist ungültig. Bitte **lösche den Channel und erstelle ihn erneut**.",
-        "ROLE_FEW_MEMBERS": "🚨 Die Rolle die du ausgewählt hast **scheint nicht die Hauptrolle zu sein**. Bitte überprüfe deine Angaben und kontaktiere einen Administrator falls es doch deine Hauptrolle ist."
+        "ROLE_FEW_MEMBERS": "🚨 Die Rolle die du ausgewählt hast **scheint nicht die Hauptrolle zu sein**. Bitte überprüfe deine Angaben und kontaktiere einen Administrator falls es doch deine Hauptrolle ist.",
+        "TOO_MUCH_MESSAGES": "🚨 Bitte lösche alle Nachrichten in unserem Kanal"
     }
 }

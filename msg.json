@@ -7,7 +7,10 @@
         "SERVER_LEFT_MEMBER_MISSING": "Server verlassen. (Zu wenige Member)",
         "FEATURE_BROADCAST_REGISTERED": "Broadcast wurde registriert.",
         "PARTNER_MESSAGE_ID_UPDATED": "Eine neuere Partnerschaftsnachricht ist verfügbar. Die Information wurde aktualisiert.",
-        "CHECK_GUILD": "Überprüfe '%CURRENT_GUILD_NAME%' (%CURRENT_GUILD_ID%)"
+        "CHECK_GUILD": "Überprüfe '%CURRENT_GUILD_NAME%' (%CURRENT_GUILD_ID%)",
+        "BOT_COMMUNICATION_REMOVED_AWAITED_RESPONSE": "Anfrage wurde nicht erhalten von Nutzer %USER_ID% (Funktion: %FUNCTION%)",
+        "BOT_COMMUNICATION_RESPONSE_INVALID": "Ungültige Antwort erhalten",
+        "BOT_COMMUNICATION_RESPONSE_FUNCTION_ERROR": "Es gab einen Fehler in einer R-Funktion '%FUNCTION%' (USER: %USER_ID%)"
     },
     "UserMessage": {
         "NOTE_TITLE": "Benachrichtigung",
@@ -74,6 +77,17 @@
         "STATUS_ONLY_OWNER": "Sorry",
         "STATUS_ONLY_OWNER_DESCRIPTION": "Diesen Befehl kann nur der Serverinhaber nutzen",
         "STATUS_HELP": "Ein Tool um zu überprüfen ob man Partner ist oder nicht",
-        "FEATURE_BROADCAST_MESSAGE": "**Erhalte deinen eigenen Werbe channel für deinen Discord** auf %GUILD_NAME% mit einer Partnerschaft! Nutze ``++partnership`` um deine Partnerschaft zu beantragen!"
+        "FEATURE_BROADCAST_MESSAGE": "**Erhalte deinen eigenen Werbe channel für deinen Discord** auf %GUILD_NAME% mit einer Partnerschaft! Nutze ``++partnership`` um deine Partnerschaft zu beantragen!",
+        "COMMAND_AVATAR_RENDER_FINISHED": "Dein Bild ist gerendert!",
+        "COMMAND_AVATAR_MUCH_MESSAGING": "Sorry, aber du kannst den Befehl erst gleich wieder benutzen (Rendern kostet Performance)",
+        "COMMAND_AVATAR_HELP": "Rendert dir ein Profilbild",
+        "BOT_EXAMINE_NOT_JSON": "Dieser Syntax ist nicht gültig (Kein JSON)",
+        "BOT_CALL_NOT_FUNCTION": "Diese Funktion ist nicht bekannt",
+        "BOT_CALL_PARAMS_MISSING": "Es fehlen Standardparameter",
+        "BOT_PARTNER_GUILD_ID": "Der Server wurde nicht gefunden. Stelle sicher, dass der Bot auf dem Server ist und die ID richtig notiert wurde",
+        "BOT_PARTNER_CHANNEL_ID": "Der Kanal wurde nicht gefunden. Stelle sicher, dass die Kanal ID richtig angegeben wurde",
+        "BOT_PARTNER_PARAMS": "Stelle sicher, dass alle Parameter richtig angegeben wurden",
+        "BOT_PARTNER_CMD_MUST_BOT": "Der Nutzer ist kein Bot",
+        "BOT_PARTNER_CMD_MUST_BOT_DESCRIPTION": "Der Nutzer muss ein Bot sein um diese Nachrichten erhalten zu können"
     }
 }

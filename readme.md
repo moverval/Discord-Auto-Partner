@@ -15,7 +15,7 @@ and install the packages with
 npm install
 ```
 
-The bot needs some information. In it, it needs an ``.env`` environment file.
+The bot needs some information. To provide it, a ``.env`` must be created.
 Then it needs variables that say how the bot can host itself. They need all to be set!
 
 

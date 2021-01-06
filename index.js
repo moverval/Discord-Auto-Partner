@@ -4,9 +4,6 @@ const fs = require('fs');
 const statusConfig = require('./status.json');
 const msg = require('./msg.json');
 
-const RENDER_ENABLED = process.env["RENDER_ENABLED"] ? true : false;
-let imgRender;
-
 const client = new Discord.Client({disableEveryone: true});
 const MINIMAL_MEMBER = parseInt(process.env["MAIN_GUILD_MINIMAL_MEMBERS_REQUIRED"]);
 const GUILD_NAME = process.env["MAIN_GUILD_NAME"];
@@ -16,6 +13,9 @@ const CLIENT_INVOKE = process.env["CLIENT_INVOKE"];
 const PARTNER_MESSAGE = fs.readFileSync('partnerMessage.md', 'utf-8');
 const COMMAND_BOOST_ENABLED = process.env["COMMAND_BOOST"];
 const CLIENT_INVITE = process.env["CLIENT_INVITE"];
+const FEATURE_BROADCAST_ENABLED = process.env["FEATURE_BROADCAST"];
+const COMMAND_AVATAR_ENABLED = false;
+const BOT_PARTNER_ENABLED = process.env["BOT_COMMAND_PARTNER"];
 const DEBUG = false;
 const serverTempRoles = {};
 
@@ -46,12 +46,10 @@ const JsonVars = {
     PARTNER_MESSAGE,
     CLIENT_INVOKE,
     CLIENT_INVITE,
-    GUILD_NAME_LOWER_CASE: GUILD_NAME.toLowerCase()
+    GUILD_NAME_LOWER_CASE: GUILD_NAME.toLowerCase(),
+    COMMAND_BOOST_ENABLED,
+    FEATURE_BROADCAST_ENABLED
 };
-
-if(RENDER_ENABLED) {
-    imgRender = require('./render.js');
-}
 
 function addDebugMessage(...args) {
     if(DEBUG) 
@@ -69,8 +67,8 @@ function replaceStringVar(string, local=null) {
     });
 }
 
-function getConsoleMessage(str) {
-    return replaceStringVar(msg["ConsoleMessage"][str]);
+function getConsoleMessage(str, local=null) {
+    return replaceStringVar(msg["ConsoleMessage"][str], local);
 }
 
 function getUserMessage(str, local=null) {
@@ -90,6 +88,7 @@ client.on('ready', async function() {
         process.exit(0);
     }
     registerCommands();
+    enableFeatures();
     client.user.setStatus('invisible');
 
     if(fs.existsSync('partners.json')) {
@@ -117,11 +116,26 @@ function registerCommands() {
     if(COMMAND_BOOST_ENABLED) {
         registerCommand("boost", require("./commands/boost").command, getUserMessage("COMMAND_BOOST_HELP"));
     }
+    if(COMMAND_AVATAR_ENABLED) {
+        registerCommand("avatar", require("./commands/avatar").command, getUserMessage("COMMAND_AVATAR_HELP"));
+    }
     registerCommand("verify", commandFunction.verify, getUserMessage("ROLE_HELP"));
     registerCommand("noverify", commandFunction.noverify, getUserMessage("NO_ROLE_HELP"));
+    registerCommand("status", commandFunction.status, getUserMessage("STATUS_HELP"));
     registerCommand("help", commandFunction.help, getUserMessage("HELP_HELP"));
     registerCommand("eval", commandFunction.eval, getUserMessage("EVAL_HELP"));
     registerCommand("log", commandFunction.log, getUserMessage("LOG_HELP"));
+    if(BOT_PARTNER_ENABLED) {
+        bch.registerCommand("partner_request", require('./commands/bot_partner').bot_func);
+    }
+    // temp
+    // registerCommand("test", require('./commands/bot_partner').command, "Test");
+}
+
+function enableFeatures() {
+    if(FEATURE_BROADCAST_ENABLED) {
+        require("./commands/broadcast").execute(cmdEnv);
+    }
 }
 
 function sendEmbed(channel, backupchannel, title, description, color) {
@@ -132,53 +146,145 @@ function sendEmbed(channel, backupchannel, title, description, color) {
     channel.send(embed).catch(() => (backupchannel ? backupchannel.send(getUserMessage("ENABLE_DIRECT_MESSAGES")) : null));
 }
 
+function sendJSONResponse(channel, json) {
+    return channel.send(JSON.stringify(json, null, '\t')).catch();
+}
+
 function sendNotifyMessage(channel, backupchannel, description) {
     sendEmbed(channel, backupchannel, getUserMessage("NOTE_TITLE"), description, 0x74766C);
 }
 
 client.on('messageDelete', async function(message) {
-    if(isPartner(message.guild)) {
-        if(partnerInformation[message.guild.id]["channel"]["id"] === message.channel.id) {
-            if(partnerInformation[message.guild.id]["partnerMessage"]["id"] === message.id) {
-                sendNotifyMessage(message.guild.owner.user, null, getUserMessage("MESSAGE_UPDATED"));
-                const partnerMessage = await message.channel.send(PARTNER_MESSAGE).catch();
-                partnerInformation[message.guild.id]["partnerMessage"]["id"] = partnerMessage.id;
-                partnerInformation[message.guild.id]["partnerMessage"]["lastUpdate"] = new Date();
-                fs.writeFileSync('partners.json', JSON.stringify(partnerInformation, null, '\t'));
-            }
-        }
-    }
-    if(!isPartner(message.guild)) {
-        let flags = await checkChannel(message.channel);
-        addDebugMessage("[MESSAGE_DELETION] Flags: " + flags);
-        if(flags > ChannelExpression.CHANNELNAME) {
-            addDebugMessage("[MESSAGE_DELETION] More steps than setting the name to channel");
-            addDebugMessage("[CHAT_EXPRESSION]" + getChatExpressionStatus(flags));
-            sendNotifyMessage(message.guild.owner.user, message.channel, null, getChatExpressionStatus(flags));
-            if(flags & ChannelExpression.CHANNEL_MESSAGE) {
-                await sendPartnerMessage(message.channel);
-                flags = await checkChannel(message.channel);
-            }
-        }
-        if(!flags) {
-            addDebugMessage("[MESSAGE_DELETION] Foreign messages out of partner channel. Ready to partner");
-            if(!isPartner(message.guild)) {
-                sendNotifyMessage(message.guild.owner.user, message.channel, null, getChatExpressionStatus(flags));
-                createPartner(message.channel);
-            }
-        }
-    }
+    reworkStatus(message.channel);
 });
 
-client.on('message', async function(message) {
-    if(isPartner(message.guild)) {
-        if(partnerInformation[message.guild.id]["channelId"] === message.channel.id && message.member.user.id !== client.user.id) {
-            sendEmbed(message.guild.owner, message.channel, getUserMessage("PARTNER_CHANNEL_REMOVED_TITLE"), getUserMessage("PARTNER_CHANNEL_REMOVED_DESCRIPTION"), 0xda746a);
-            removePartner(message.guild);
+function botCommandJsonValid(json) {
+    return json && typeof json['func'] === 'string'
+                && typeof json['args'] === 'object';
+}
+
+function isBotResponse(json) {
+    return typeof json['error'] === 'number' &&
+            typeof json['errorMessage'] === 'string' &&
+            typeof json['args'] !== 'undefined';
+}
+
+class BotCommandHandler {
+    constructor() {
+        this.commandMap = {};
+        this.responseAwait = {};
+        this.short = {
+            getFunction: (json) => json['func'],
+            getArgs: (json) => json['args']
+        };
+        this.registerCommand('_test', this.respondValid);
+    }
+
+    respondValid(message, json, main) {
+        sendJSONResponse(message.channel, cmdEnv.createResponse(0, '', '_test', null));
+    }
+
+    registerCommand(command, func) {
+        this.commandMap[command] = func;
+    }
+
+    unregisterCommand(command) {
+        delete this.commandMap[command];
+    }
+
+    isCommand(command) {
+        return typeof this.commandMap[command] === 'function';
+    }
+
+    callCommand(message, json) {
+        if(botCommandJsonValid(json)) {
+            if(this.isCommand(this.short.getFunction(json))) {
+                const args = this.commandMap[this.short.getFunction(json)]['func'](message, json, cmdEnv);
+                delete args['func'];
+                delete args['error'];
+                delete args['errorMessage'];
+                sendJSONResponse(message.channel, cmdEnv.createResponse(args['error'] || 0, args['errorMessage'] || '', this.short.getFunction(json), args));
+            } else {
+                sendJSONResponse(message.channel, {
+                    error: 2,
+                    errorMessage: getUserMessage("BOT_CALL_NOT_FUNCTION")
+                });
+            }
+        } else {
+            sendJSONResponse(message.channel, {
+                error: 3,
+                errorMessage: getUserMessage("BOT_CALL_PARAMS_MISSING")
+            });
         }
     }
+
+    addResponseAwait(userId, funcName, func) {
+        if(funcName.startsWith('__')) return;
+        if(!this.responseAwait[userId]) {
+            this.responseAwait[userId] = {};
+            this.responseAwait[userId]['__current'] = {};
+        }
+        if(!this.responseAwait[userId][funcName]) { // Type must be registered
+            this.responseAwait[userId][funcName] = [];
+            this.responseAwait[userId]['__current'][funcName] = 0;
+        }
+        const size = this.responseAwait[userId][funcName].push(func);
+        const before = this.responseAwait[userId]['__current'];
+
+        setTimeout(() => {
+            const current = this.responseAwait[userId]['__current'][funcName];
+            if(current - before < size) {
+                this.responseAwait[userId][funcName].splice(0, 1);
+                console.log(getConsoleMessage("BOT_COMMUNICATION_REMOVED_AWAITED_RESPONSE", {USER_ID: userId, FUNCTION: funcName}));
+            }
+        }, 1e4); // After 10 Seconds Response gets canceled.
+    }
+
+    getResponse(message, json) {
+        const funcName = this.short.getFunction(json);
+        if(funcName.startsWith('__')) return;
+        const userId = message.member.user.id;
+        if(this.responseAwait[userId] && this.responseAwait[userId][funcName]
+            && this.responseAwait[userId][funcName].size > 0) {
+                const func = this.responseAwait[userId][funcName].shift();
+                this.responseAwait[userId]['__current'][funcName] += 1;
+                try {
+                    func(message, json);
+                } catch(Error) {
+                    console.log(getConsoleMessage("BOT_COMMUNICATION_RESPONSE_FUNCTION_ERROR", {FUNCTION: funcName, USER_ID: userId}));
+                }
+            } else {
+                console.log(getConsoleMessage("BOT_COMMUNICATION_RESPONSE_INVALID"));
+            }
+    }
+}
+
+function manageBotCommand(message) {
+    try {
+        const json = JSON.parse(message.content);
+        if(isBotResponse(json)) {
+            bch.getResponse(message, json);
+        } else {
+            bch.callCommand(message, json);
+        }
+    } catch(Error) {
+        sendJSONResponse(message.channel, {
+            error: 1,
+            errorMessage: getUserMessage("BOT_EXAMINE_NOT_JSON")
+        });
+    }
+}
+const bch = new BotCommandHandler();
+client.on('message', async function(message) {
+    if(message.author.bot) {
+        if(message.channel.type === 'dm' && message.author.id !== client.user.id) {
+            manageBotCommand(message);
+        }
+        return;
+    }
+    reworkStatus(message.channel);
     const prefix = process.env["CLIENT_INVOKE"];
-    if(message.content.startsWith(prefix) && !message.member.user.bot && message.member.user.id !== client.user.id) {
+    if(message.content.startsWith(prefix) && !message.member.user.bot && message.member.id !== client.user.id) {
         const args = message.content.substr(prefix.length).split(" ");
         const invoke = args.shift().toLowerCase();
         
@@ -274,7 +380,8 @@ const ChannelExpression = {
     CHANNEL_MESSAGE: 1 << 3,
     CHANNEL: 1 << 4,
     CHANNEL_FOREIGN_MESSAGE: 1 << 5,
-    ROLE_FEW_MEMBERS: 1 << 6
+    ROLE_FEW_MEMBERS: 1 << 6,
+    TOO_MUCH_MESSAGES: 1 << 7
 };
 
 /**
@@ -300,11 +407,18 @@ async function checkChannel(channel) {
         const permissions = channel.permissionsFor(role);
         const botPermissions = channel.permissionsFor(client.user);
         if(permissions && permissions.has('READ_MESSAGES') && permissions.has('READ_MESSAGE_HISTORY') && !permissions.has('SEND_MESSAGES')) {
-            if(botPermissions && botPermissions.has('SEND_MESSAGES') && botPermissions.has('READ_MESSAGES')) {
+            if(botPermissions && botPermissions.has('SEND_MESSAGES') && botPermissions.has('READ_MESSAGES') && botPermissions.has('READ_MESSAGE_HISTORY')) {
                 const messages = await channel.fetchMessages();
                 const lastMessage = messages.first();
-                if(lastMessage && lastMessage.member.user.id !== client.user.id)
-                    rt |= ChannelExpression.CHANNEL_FOREIGN_MESSAGE;
+                if(lastMessage) {
+                    if(lastMessage.member.user.id !== client.user.id)
+                        return ChannelExpression.CHANNEL_FOREIGN_MESSAGE;
+                    if(partnerInformation[channel.guild.id] && partnerInformation[channel.guild.id]["partnerMessage"]["id"] !== lastMessage.id) {
+                        partnerInformation[channel.guild.id]["partnerMessage"]["id"] = lastMessage.id;
+                        console.log(getConsoleMessage("PARTNER_MESSAGE_ID_UPDATED"));
+                        savePartnerInformation();
+                    }
+                }
                 if(!lastMessage)
                     rt |= ChannelExpression.CHANNEL_MESSAGE;
             } else rt |= ChannelExpression.CHANNELPERMISSION_BOT;
@@ -329,55 +443,85 @@ function getChatExpressionStatus(expression) {
     return message;
 }
 
-client.on('channelCreate', async function(channel) {
+async function reworkStatus(channel) {
     if(channel.type === 'text') {
         const flags = await checkChannel(channel);
-        if(flags === ChannelExpression.NONE) return;
-        if(!(flags & ChannelExpression.CHANNELNAME)) {
-            const status = getChatExpressionStatus(flags);
-            if(status) {
+        if(isPartner(channel.guild)) {
+            if(partnerInformation[channel.guild.id]["channel"]["id"] === channel.id) {
+                if(flags) {
+                    if(flags & ChannelExpression.CHANNEL_MESSAGE) {
+                        const message = await sendPartnerMessage(channel);
+                        sendNotifyMessage(channel.guild.owner.user, null, getUserMessage("MESSAGE_UPDATED"));
+                        partnerInformation[channel.guild.id]["partnerMessage"]["id"] = message.id;
+                        partnerInformation[channel.guild.id]["partnerMessage"]["lastUpdate"] = new Date();
+                        savePartnerInformation();
+                    } else {
+                        removePartner(channel.guild);
+                        sendEmbed(channel.guild.owner, null, getUserMessage("PARTNER_CHANNEL_REMOVED_TITLE"), getUserMessage("PARTNER_CHANNEL_REMOVED_DESCRIPTION"), 0xda746a);
+                    }
+                }
+            }
+        } else {
+            if(flags) {
+                if(flags > ChannelExpression.CHANNELNAME) {
+                    const status = getChatExpressionStatus(flags);
+    
+                    if(status) {
+                        sendNotifyMessage(channel.guild.owner, channel, status);
+                    }
+                }
+                
+                if(flags & ChannelExpression.CHANNEL_MESSAGE) {
+                    sendPartnerMessage(channel);
+                }
+            } else {
+                const status = getChatExpressionStatus(flags);
                 sendNotifyMessage(channel.guild.owner, channel, status);
+                createPartner(channel);
             }
         }
     }
-});
+}
+
+client.on('channelCreate', reworkStatus);
 
 client.on('channelUpdate', async function(channelOld, channelNew) {
-    if(channelNew.type === 'text') {
-        if(isPartner(channelNew.guild)) {
-            addDebugMessage("[CHANNEL_UPDATE] This channel is on a partner guild");
-            if(partnerInformation[channelNew.guild.id]["channelId"] === channelNew.id) {
-                addDebugMessage("[CHANNEL_UPDATE] Channel is already registered as partner channel");
-                const flags = await checkChannel(channelNew);
-                if(flags) {
-                    const embed = new Discord.RichEmbed();
-                    addDebugMessage("[CHANNEL_UPDATE] Channel is now invalid, removing partner");
-                    removePartner(channelOld.guild);
-                    sendEmbed(channelNew.guild.owner, channelOld, getUserMessage("PARTNER_CHANNEL_REMOVED_TITLE"), getUserMessage("PARTNER_CHANNEL_REMOVED_DESCRIPTION"), 0xda746a);
-                }
-            }
-        }
-        else {
-            let flags = await checkChannel(channelNew);
-            addDebugMessage("[CHANNEL_UPDATE] Flags: " + flags);
-            if(flags > ChannelExpression.CHANNELNAME) {
-                addDebugMessage("[CHANNEL_UPDATE] More steps than setting the name to channel");
-                addDebugMessage("[CHAT_EXPRESSION] " + getChatExpressionStatus(flags));
-                sendNotifyMessage(channelOld.guild.owner.user, null, getChatExpressionStatus(flags));
-                if(flags & ChannelExpression.CHANNEL_MESSAGE) {
-                    await sendPartnerMessage(channelOld);
-                    flags = await checkChannel(channelNew);
-                }
-            }
-            if(!flags) {
-                addDebugMessage("[CHANNEL_UPDATE] Channel complete. Ready for partner");
-                if(!isPartner(channelNew.guild)) {
-                    sendNotifyMessage(channelOld.guild.owner.user, null, getChatExpressionStatus(flags));
-                    createPartner(channelNew);
-                }
-            }
-        }
-    }
+    await reworkStatus(channelNew);
+    // if(channelNew.type === 'text') {
+    //     if(isPartner(channelNew.guild)) {
+    //         addDebugMessage("[CHANNEL_UPDATE] This channel is on a partner guild");
+    //         if(partnerInformation[channelNew.guild.id]["channelId"] === channelNew.id) {
+    //             addDebugMessage("[CHANNEL_UPDATE] Channel is already registered as partner channel");
+    //             const flags = await checkChannel(channelNew);
+    //             if(flags) {
+    //                 const embed = new Discord.RichEmbed();
+    //                 addDebugMessage("[CHANNEL_UPDATE] Channel is now invalid, removing partner");
+    //                 removePartner(channelOld.guild);
+    //                 sendEmbed(channelNew.guild.owner, channelOld, getUserMessage("PARTNER_CHANNEL_REMOVED_TITLE"), getUserMessage("PARTNER_CHANNEL_REMOVED_DESCRIPTION"), 0xda746a);
+    //             }
+    //         }
+    //     }
+    //     else {
+    //         let flags = await checkChannel(channelNew);
+    //         addDebugMessage("[CHANNEL_UPDATE] Flags: " + flags);
+    //         if(flags > ChannelExpression.CHANNELNAME) {
+    //             addDebugMessage("[CHANNEL_UPDATE] More steps than setting the name to channel");
+    //             addDebugMessage("[CHAT_EXPRESSION] " + getChatExpressionStatus(flags));
+    //             sendNotifyMessage(channelOld.guild.owner.user, null, getChatExpressionStatus(flags));
+    //             if(flags & ChannelExpression.CHANNEL_MESSAGE) {
+    //                 await sendPartnerMessage(channelOld);
+    //                 flags = await checkChannel(channelNew);
+    //             }
+    //         }
+    //         if(!flags) {
+    //             addDebugMessage("[CHANNEL_UPDATE] Channel complete. Ready for partner");
+    //             if(!isPartner(channelNew.guild)) {
+    //                 sendNotifyMessage(channelOld.guild.owner.user, null, getChatExpressionStatus(flags));
+    //                 createPartner(channelNew);
+    //             }
+    //         }
+    //     }
+    // }
 });
 
 function createPartnerEmbed(partnerMessage) {
@@ -388,7 +532,7 @@ function createPartnerEmbed(partnerMessage) {
 
 async function sendPartnerMessage(channel, content=null) {
     if(!content) content = createPartnerEmbed(PARTNER_MESSAGE);
-    await channel.send(content).catch();
+    return await channel.send(content).catch();
 }
 
 client.on('channelDelete', function(channel) {
@@ -492,7 +636,7 @@ function checkGuild(guild) {
                 }
                 if(flags & ChannelExpression.CHANNEL_MESSAGE) {
                     sendPartnerMessage(channel);
-                    addDebugMessage("[GUILD_CHECK] Message missing but the rest is ok (now sending message)");
+                    addDebugMessage("[GUILD_CHECK] Message missing but the rest is ok (sending message now)");
                     return resolve({isPartner: true, channel});
                 }
                 if(count === guildChannels.size) {
@@ -533,20 +677,21 @@ async function checkPartnerServersValid() {
             const guild = client.guilds.get(pGuildId);
             if(guild) {
                 const information = await checkGuild(guild);
+                console.log(getConsoleMessage("CHECK_GUILD", {CURRENT_GUILD_NAME: guild.name, CURRENT_GUILD_ID: guild.id}));
                 if(!information.isPartner) {
                     removePartner(guild);
                     sendEmbed(guild.owner.user, null, getUserMessage("PARTNER_CHANNEL_REMOVED_TITLE"), getUserMessage("PARTNER_CHANNEL_REMOVED_DESCRIPTION"), 0xda746a);
                     addDebugMessage("[PARTNER_CHECK] Partner " + pGuildId + "not valid. Partnership removed");
                 }
                 else {
-                    editPartnerMessage(guild);
-                    addDebugMessage("[PARTNER_CHECK] Updating partner message on server " + pGuildId);
                     if(information.channel.id !== guildPartnerInformation["channel"]["id"]) {
                         addDebugMessage("[PARTNER_CHECK] Channel has changed. Updating partners.json");
                         partnerInformation["channel"]["id"] = information.channel.id;
                         partnerInformation["channel"]["name"] = information.channel.name;
                         fs.writeFileSync('partners.json', JSON.stringify(partnerInformation, null, '\t'));
                     }
+                    editPartnerMessage(guild);
+                    addDebugMessage("[PARTNER_CHECK] Updating partner message on server " + pGuildId);
                 }
             }
             else {
@@ -681,6 +826,23 @@ const commandFunction = {
         } else {
             sendEmbed(message.channel, null, getUserMessage("ROLE_ALREADY_PARTNER"), getUserMessage("ROLE_ALREADY_PARTNER_DESCRIPTION"), 0xFF837F);
         }
+    },
+    status: async function(message, invoke, args) {
+        if(message.member.user.id === message.guild.owner.id) {
+            const guildStatus = await checkGuild(message.guild);
+            if(guildStatus.isPartner) {
+                if(!isPartner(message.guild)) {
+                    createPartner(guildStatus.channel);
+                    sendEmbed(message.member.user, null, getUserMessage("STATUS_UPDATED"), getUserMessage("STATUS_UPDATED_DESCRIPTION"), 0xFFFF7F);
+                } else {
+                    sendEmbed(message.member.user, null, getUserMessage("STATUS_PARTNER"), getUserMessage("STATUS_PARTNER_DESCRIPTION"), 0xFFFF7F);
+                }
+            } else {
+                sendNotifyMessage(message.member.user, null, getChatExpressionStatus(guildStatus.flags));
+            }
+        } else {
+            sendEmbed(message.member.user, null, getUserMessage("STATUS_ONLY_OWNER"), getUserMessage("STATUS_ONLY_OWNER_DESCRIPTION"), 0xFF837F);
+        }
     }
 };
 
@@ -697,9 +859,17 @@ async function getInvite(guild) { // TODO Create invite
 }
 
 const cmdEnv = {
-    isPartner, MAIN_GUILD, editPartnerMessage, removePartnerById, sendEmbed, getUserMessage, client,
+    isPartner, MAIN_GUILD, editPartnerMessage, removePartnerById, sendEmbed, getUserMessage,
+    getConsoleMessage, client, sendJSONResponse, checkChannel,
     createPartnerEmbed, getInvite, savePartnerInformation,
+    getChatExpressionStatus, createPartner, bch,
+    isString: value => typeof value === 'string',
+    isNumber: value => typeof value === 'number',
     getPartnerInformation: () => partnerInformation,
     getMainGuild: () => MAIN_GUILD,
-    getPartnerMessage: () => PARTNER_MESSAGE
+    getPartnerMessage: () => PARTNER_MESSAGE,
+    getProcessEnv: () => process.env,
+    createResponse: (error, errorMessage, func, json) => ({error, errorMessage, func, args: json}),
+    createRequest: (func, args) => ({func, args}),
+    createErrorCode: (major, minor) => (major << 24) + minor
 };

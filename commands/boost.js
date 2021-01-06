@@ -28,6 +28,7 @@ exports.command = async (message, invoke, args, main) => {
                 return;
             }
         }
+        let wasBoosted = false;
         for(const pGuildId in main.getPartnerInformation()) {
             const guildPartnerInformation = main.getPartnerInformation()[pGuildId];
             if(guildPartnerInformation["partner"]) {
@@ -36,20 +37,23 @@ exports.command = async (message, invoke, args, main) => {
                     const mainChannel = main.getMainGuild().channels.get(guildPartnerInformation["mainServerChannel"]["id"]);
                     if(mainChannel) { // Else partner channel not found on main server
                         mainChannel.setPosition(0);
-                        const invite = await main.getInvite(guild);
+                        const invite = await main.getInvite(message.channel.guild);
                         if(invite) {
-                            await main.editPartnerMessage(guild, main.createPartnerEmbed(main.getPartnerMessage()).addField("Geboosteter Server", main.getUserMessage("COMMAND_BOOST_PARTNER_SUBMESSAGE", {INVITE_LINK: "https://discord.gg/" + invite.code, SERVER_NAME: guild.name, INVITE_CODE: invite.code}), false));
-                            main.sendEmbed(message.channel, null, main.getUserMessage("COMMAND_BOOST_SERVER_BOOSTED"), main.getUserMessage("COMMAND_BOOST_SERVER_BOOSTED_DESCRIPTION"), 0xFFFF7F);
-                            main.getPartnerInformation()[message.guild.id]["boost_time"] = new Date().toString();
-                            main.savePartnerInformation();
-                        } else {
-                            main.sendEmbed(message.channel, main.getUserMessage("COMMAND_BOOST_MISSING_PERMISSIONS"), main.getUserMessage("COMMAND_BOOST_MISSING_PERMISSIONS_DESCRIPTION"), 0xFF837F);
+                            wasBoosted = true;
+                            await main.editPartnerMessage(guild, main.createPartnerEmbed(main.getPartnerMessage()).addField("Geboosteter Server", main.getUserMessage("COMMAND_BOOST_PARTNER_SUBMESSAGE", {INVITE_LINK: "https://discord.gg/" + invite.code, SERVER_NAME: invite.guild.name, INVITE_CODE: invite.code}), false));
                         }
                     }
                 } else {
                     main.removePartnerById(pGuildId);
                 }
             }
+        }
+        if(wasBoosted) {
+            main.sendEmbed(message.channel, null, main.getUserMessage("COMMAND_BOOST_SERVER_BOOSTED"), main.getUserMessage("COMMAND_BOOST_SERVER_BOOSTED_DESCRIPTION"), 0xFFFF7F);
+            main.getPartnerInformation()[message.guild.id]["boost_time"] = new Date().toString();
+            main.savePartnerInformation();
+        } else {
+            main.sendEmbed(message.channel, main.getUserMessage("COMMAND_BOOST_MISSING_PERMISSIONS"), main.getUserMessage("COMMAND_BOOST_MISSING_PERMISSIONS_DESCRIPTION"), 0xFF837F);
         }
     } else {
         main.sendEmbed(message.channel, null, main.getUserMessage("NOT_PARTNERED"), main.getUserMessage("NOT_PARTNERED_DESCRIPTION"), 0xFF837F);

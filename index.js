@@ -14,7 +14,7 @@ const PARTNER_MESSAGE = fs.readFileSync('partnerMessage.md', 'utf-8');
 const COMMAND_BOOST_ENABLED = process.env["COMMAND_BOOST"];
 const CLIENT_INVITE = process.env["CLIENT_INVITE"];
 const FEATURE_BROADCAST_ENABLED = process.env["FEATURE_BROADCAST"];
-const COMMAND_AVATAR_ENABLED = process.env["COMMAND_AVATAR"];
+const COMMAND_AVATAR_ENABLED = false;
 const BOT_PARTNER_ENABLED = process.env["BOT_COMMAND_PARTNER"];
 const DEBUG = false;
 const serverTempRoles = {};
@@ -129,7 +129,7 @@ function registerCommands() {
         bch.registerCommand("partner_request", require('./commands/bot_partner').bot_func);
     }
     // temp
-    registerCommand("test", require('./commands/bot_partner').command, "EEEEE");
+    // registerCommand("test", require('./commands/bot_partner').command, "Test");
 }
 
 function enableFeatures() {

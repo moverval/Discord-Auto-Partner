@@ -7,17 +7,19 @@ This Bot manages partner requests, checks if the partnership is valid and when n
 This bot is powered with [node](https://nodejs.org/en/), so [node](https://nodejs.org/en/) should be installed on the machine which should run this.
 
 Use git to clone this project into one folder
+
 ```
 git clone https://github.com/MMNN321/Discord-Auto-Partner.git
 ```
+
 and install the packages with
+
 ```
 npm install
 ```
 
-The bot needs some information. To provide it, a ``.env`` must be created.
-Then it needs variables that say how the bot can host itself. They need all to be set!
-
+The bot needs some information. To provide it, a `.env` must be created.
+Then it needs variables that say how the bot can host itself. They must all be set!
 
 | Name                                | What needs to be inserted                                                     |
 | ----------------------------------- | ----------------------------------------------------------------------------- |
@@ -28,8 +30,10 @@ Then it needs variables that say how the bot can host itself. They need all to b
 | MAIN_GUILD_MINIMAL_MEMBERS_REQUIRED | How many members are required on partner server to add it to the partner list |
 | MAIN_GUILD_NAME                     | The guild's name                                                              |
 | PARTNER_CATEGORY                    | The category for the partner channels. It needs the categories name           |
+| COMMAND_BOOST                       | A feature that partners can bump themself                                     |
 
 Here is an example
+
 ```
 CLIENT_SECRET="Your token"
 CLIENT_INVOKE="++"
@@ -38,33 +42,32 @@ MAIN_GUILD="460424836246929409"
 MAIN_GUILD_MINIMAL_MEMBERS_REQUIRED=30
 MAIN_GUILD_NAME="DeineWerbung"
 PARTNER_CATEGORY="Partners"
+COMMAND_BOOST=true
 ```
 
-Lastly, create a file named ``partnerMessage.md``. In there the partner message can be inserted.
+Lastly, create a file named `partnerMessage.md`. In there the partner message can be inserted.
 
-When all variables are set the bot should be startable with
-```
-node index
-```
-or
+When all variables are set, the bot should be startable with
+
 ```
 npm start
-``` 
+```
 
 ## Change the default messages of the bot
-All messages are placed in two files named ``msg.json`` and ``status.json``. Select the old message and replace it with a new one. If there is a variable
-that needs to be placed in this message, use percentages to mark it e.g. ``%GUILD_ID%`` (this would display the guild id from the main guild).
+
+All messages are placed in two files named `msg.json` and `status.json`. Select the old message and replace it with a new one. If there is a variable
+that needs to be placed in this message, use percentages to mark it e.g. `%GUILD_ID%` (this would display the guild id from the main guild).
 
 All predefined variables:
 
-|Name  |Use  |
-|---------|---------|
-|MINIMAL_MEMBER     | The minimal member count that is needed to partner        |
-|GUILD_NAME     | The guild name from main guild        |
-|GUILD_ID     | The guild id from main guild        |
-|PARTNER_CATEGORY     | The partner category name        |
-|PARTNER_MESSAGE     | The content from partnerMessage.md        |
-|CLIENT_INVOKE     | The prefix for the bot        |
-|GUILD_NAME_LOWER_CASE     | GUILD_NAME in lower case        |
+| Name                  | Use                                                |
+| --------------------- | -------------------------------------------------- |
+| MINIMAL_MEMBER        | The minimal member count that is needed to partner |
+| GUILD_NAME            | The guild name from main guild                     |
+| GUILD_ID              | The guild id from main guild                       |
+| PARTNER_CATEGORY      | The partner category name                          |
+| PARTNER_MESSAGE       | The content from partnerMessage.md                 |
+| CLIENT_INVOKE         | The prefix for the bot                             |
+| GUILD_NAME_LOWER_CASE | GUILD_NAME in lower case                           |
 
-Own variables can be added in ``index.js/JsonVars``. Just insert a new variable and it will be visible in the json document.
+Own variables can be added in `index.js/JsonVars`. Just insert a new variable and it will be visible in the json document.
